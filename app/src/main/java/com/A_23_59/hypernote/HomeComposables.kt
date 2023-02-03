@@ -9,10 +9,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -23,10 +22,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -40,6 +41,9 @@ import com.google.accompanist.pager.rememberPagerState
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers.Main
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private const val TAG = "Tags"
@@ -50,7 +54,7 @@ enum class ThemeState {
 
 var themeSpecifier = ThemeSpecifier(ThemeState.GLASSMORPHISM)
 
-var isScrollingUp by mutableStateOf(false)
+var isNotScrollingUp by mutableStateOf(false)
 
 var searchBtnIsClicked by mutableStateOf(false)
 
@@ -295,13 +299,15 @@ private fun LazyListState.isScrollingUp(): Boolean {
 fun ItemListSection(elements: List<Item>) {
     val lazyListState = rememberLazyListState()
 
-    isScrollingUp = lazyListState.isScrollingUp()
-    Log.i(TAG, "ItemListSection is called ")
+    isNotScrollingUp = lazyListState.isScrollingUp()
 
-
+    val testingScroll =
+        remember { derivedStateOf { lazyListState.layoutInfo.visibleItemsInfo.size - 1 == itemList.size - 1 } }
+println(" the value has been changed")
     Column {
         LazyColumn(
             state = lazyListState,
+            contentPadding = PaddingValues(vertical = 16.dp),
             content = {
                 items(elements, key = { it.title }) { item ->
                     Column {
@@ -311,7 +317,7 @@ fun ItemListSection(elements: List<Item>) {
                             priorityColor = item.color
                         )
                         Box(Modifier.align(Alignment.End)) {
-                            MyActionsSection()
+                            MyTaskActionsSection()
                         }
                     }
 
@@ -320,10 +326,11 @@ fun ItemListSection(elements: List<Item>) {
             },
         )
     }
+
 }
 
 @Composable
-fun MyActionsSection(modifier: Modifier = Modifier) {
+fun MyTaskActionsSection(modifier: Modifier = Modifier) {
     Surface(
         Modifier.padding(end = 16.dp, bottom = 16.dp),
         shape = RoundedCornerShape(bottomStart = 10.dp, bottomEnd = 10.dp),
@@ -359,26 +366,28 @@ fun MyTabLayout(modifier: Modifier = Modifier) {
 
     Row(Modifier.fillMaxWidth()) {
         Column() {
-            TabRow(selectedTabIndex = pagerState.currentPage,
-                backgroundColor = Color.Transparent,
-                contentColor = MaterialTheme.colors.onSurface,
-                modifier = Modifier
-                    .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
-                    .clip(
-                        RoundedCornerShape(10.dp)
-                    ),
-                tabs = {
+            AnimatedVisibility(visible = isNotScrollingUp) {
+                TabRow(selectedTabIndex = pagerState.currentPage,
+                    backgroundColor = Color.Transparent,
+                    contentColor = MaterialTheme.colors.onSurface,
+                    modifier = Modifier
+                        .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
+                        .clip(
+                            RoundedCornerShape(10.dp)
+                        ),
+                    tabs = {
 
-                    Tab(
-                        selected = pagerState.currentPage == 0,
-                        onClick = { coroutineScope.launch { pagerState.animateScrollToPage(0) } },
-                        text = { Text(text = "TASKS") })
-                    Tab(
-                        selected = pagerState.currentPage == 1,
-                        onClick = { coroutineScope.launch { pagerState.animateScrollToPage(1) } },
-                        text = { Text(text = "NOTES") })
+                        Tab(
+                            selected = pagerState.currentPage == 0,
+                            onClick = { coroutineScope.launch { pagerState.animateScrollToPage(0) } },
+                            text = { Text(text = "TASKS") })
+                        Tab(
+                            selected = pagerState.currentPage == 1,
+                            onClick = { coroutineScope.launch { pagerState.animateScrollToPage(1) } },
+                            text = { Text(text = "NOTES") })
 
-                })
+                    })
+            }
             HorizontalPager(count = 2, state = pagerState) {
 
                 when (it) {
@@ -462,7 +471,11 @@ fun MyTopAppbar(modifier: Modifier = Modifier, navigator: DestinationsNavigator)
 
 @Composable
 fun MyFab(navigator: () -> Unit) {
-    AnimatedVisibility(visible = isScrollingUp, enter = fadeIn(), exit = fadeOut()) {
+    AnimatedVisibility(
+        visible = isNotScrollingUp,
+        enter = slideInVertically() + fadeIn(),
+        exit = fadeOut() + slideOutVertically()
+    ) {
         FloatingActionButton(
             onClick = { navigator() },
             backgroundColor = if (themeSpecifier.themeState == ThemeState.LIGHT)
@@ -517,8 +530,15 @@ fun SortSectionDisplay() {
 @Composable
 fun HomePage(navigator: DestinationsNavigator) {
     val toastContext = LocalContext.current
-    BackHandler() {
-        Toast.makeText(toastContext, "press one more time to exit", Toast.LENGTH_SHORT).show()
+    var backCounter: Byte = 0
+
+    BackHandler {
+        ++backCounter
+        if (backCounter.toInt() == 2)
+            navigator.popBackStack()
+        else {
+            Toast.makeText(toastContext, "press again to exit", Toast.LENGTH_SHORT).show()
+        }
     }
 
     Scaffold(
@@ -543,21 +563,24 @@ fun HomePage(navigator: DestinationsNavigator) {
 
                 }
             }
-            Column(modifier = Modifier.fillMaxHeight()) {
+
+            Box() {
+
+            }
+            Column {
+
+
                 AnimatedVisibility(visible = selectBtnIsClicked) {
-                    SelectItemsBtn()
+                    SelectMode()
                 }
 
                 AnimatedVisibility(visible = searchBtnIsClicked) {
                     SearchTextField()
                 }
-                AnimatedVisibility(visible = showTopAppBar) {
+                AnimatedVisibility(visible = showTopAppBar && isNotScrollingUp) {
                     MyTopAppbar(navigator = navigator)
                 }
                 MyTabLayout()
-                Spacer(modifier = Modifier.height(10.dp))
-                SortSectionDisplay()
-//                    ItemListSection(elements = itemList)
             }
         }
     }
@@ -604,7 +627,7 @@ fun SettingsPage(navigator: DestinationsNavigator) {
 }
 
 @Composable
-fun SelectItemsBtn() {
+fun SelectMode() {
     ConstraintLayout(
         Modifier
             .fillMaxWidth()
@@ -667,26 +690,45 @@ fun SelectItemsBtn() {
 
 @Destination(style = MyDialogStyle::class)
 @Composable
-fun SortDialog() {
-    SortD()
-}
+fun SortDialog(navigator: DestinationsNavigator) {
 
-@Composable
-fun SortD() {
-    Card(
-        Modifier
-            .fillMaxWidth()
-            .height(300.dp),
-        shape = RoundedCornerShape(10.dp),
-        backgroundColor = Color.White.copy(0.6F),
-        contentColor = Color.Black
-    ) {
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(text = "this is the sort dialog")
+    val items = listOf("Ascending", "Descending", "importance", "Date")
+    var selectedItem by remember { mutableStateOf("") }
+    Card(shape = RoundedCornerShape(15.dp)) {
+        Column(Modifier.selectableGroup()) {
+            Text(
+                text = "Sort As :",
+                modifier = Modifier.padding(start = 12.dp, top = 8.dp, bottom = 4.dp),
+                style = MaterialTheme.typography.h6
+            )
+            items.forEach { label ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .selectable(
+                            selected = label == selectedItem,
+                            onClick = {
+                                CoroutineScope(Main).launch {
+                                    selectedItem = label
+                                    delay(500)
+                                    navigator.navigateUp()
+                                }
+                            },
+                            role = Role.RadioButton
+                        )
+                        .padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = selectedItem == label,
+                        onClick = null,
+                        modifier = Modifier.padding(end = 16.dp)
+                    )
+                    Text(text = label)
+                }
+            }
         }
+
     }
 }
 
@@ -728,11 +770,6 @@ fun SettingsPreview() {
     SettingsP()
 }
 
-@Preview
-@Composable
-fun SortDialogPreview() {
-    SortD()
-}
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
@@ -743,7 +780,7 @@ fun SearchPreview() {
 @Preview
 @Composable
 fun SelectItemsBtnPreview() {
-    SelectItemsBtn()
+    SelectMode()
 }
 
 @Preview
@@ -755,7 +792,7 @@ fun SortSectionPreview() {
 @Preview
 @Composable
 fun MyActionSectionPreview() {
-    MyActionsSection()
+    MyTaskActionsSection()
 }
 
 
