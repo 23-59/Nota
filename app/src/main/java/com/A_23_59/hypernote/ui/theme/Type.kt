@@ -13,6 +13,9 @@ import com.A_23_59.hypernote.R
 val iranYekan = FontFamily(Font(R.font.iran_yekan_regular, weight = FontWeight.Normal, style = FontStyle.Normal),
     Font(R.font.iran_yekan_bold, weight = FontWeight.Bold)
 )
+val iranYekanFarsiNamerals = FontFamily(Font(R.font.iran_yekan_fa_nameral_regular, weight = FontWeight.Normal),
+    Font(R.font.iran_yekan_fa_nameral_bold, weight = FontWeight.Bold)
+)
 
 val pacifico = FontFamily(Font(R.font.pacifico_regular, weight = FontWeight.Normal))
 

@@ -26,34 +26,20 @@ import com.A_23_59.hypernote.ui.theme.iranYekan
 import com.A_23_59.hypernote.ui.theme.pacifico
 import kotlinx.coroutines.Dispatchers.IO
 
-var persianBorder by mutableStateOf(0.dp)
-var englishBorder by mutableStateOf(3.dp)
+var persianBorder by mutableStateOf(3.dp)
+var englishBorder by mutableStateOf(0.dp)
 var lightTheme by mutableStateOf(0.dp)
 var darkTheme by mutableStateOf(3.dp)
 var themeIsDark by mutableStateOf(true)
 
  const val TAG = "TAGS"
 
-
 @Composable
 fun WelcomeScreen() {
-
-
 
     Log.i(TAG, "CHANGING LANGUAGE TO $selectedLocale")
     Log.i(TAG, "SHOW WELCOME SCREEN TO $showWelcomeScreen")
     Log.i(TAG, "CHANGING THEME $themeIsDark")
-
-
-    val showWelcomeCoroutine = rememberCoroutineScope { IO }
-    val darkThemeCoroutine = rememberCoroutineScope { IO }
-    val languageCoroutine = rememberCoroutineScope { IO }
-
-
-
-
-
-
 
 
     HyperNoteTheme(darkTheme = themeIsDark) {
@@ -70,7 +56,7 @@ fun WelcomeScreen() {
                     contentDescription = null,
                     modifier = Modifier
                         .size(120.dp)
-                        .clip(RoundedCornerShape(5.dp))
+                        .clip(RoundedCornerShape(20.dp))
                         .constrainAs(appLogoPosition) {
                             start.linkTo(parent.start)
                             end.linkTo(parent.end)
@@ -85,7 +71,7 @@ fun WelcomeScreen() {
                     style = MaterialTheme.typography.h4, fontFamily = if (selectedLocale=="fa-ir") iranYekan else pacifico,
                     modifier = Modifier.constrainAs(txtTitlePosition) {
                         width = Dimension.fillToConstraints
-                        top.linkTo(appLogoPosition.bottom, 24.dp)
+                        top.linkTo(appLogoPosition.bottom, 12.dp)
                         start.linkTo(parent.start)
                         end.linkTo(parent.end)
                     })
@@ -246,8 +232,7 @@ fun WelcomeScreen() {
                     modifier = Modifier
                         .shadow(
                             spotColor = MaterialTheme.colors.primary,
-                            ambientColor = MaterialTheme.colors.primary,
-                            elevation = 11.dp,
+                            elevation = 12.dp,
                             shape = RoundedCornerShape(15.dp)
                         )
                         .constrainAs(confirmButtonPosition) {

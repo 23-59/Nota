@@ -53,5 +53,19 @@
     <string name="minute">Minute</string>
     <string name="set_time_and_date">Set Time And Date</string>
     <string name="invalid_input">Invalid Input</string>
+    <string name="day_before_today">The day value entered is before today</string>
+    <string name="month_before_this_month">The month value entered is before the current month</string>
+    <string name="year_before_this_year">The entered year value is before the current year</string>
+    <string name="the_date_entered_is_before_today_s_date">The date entered is before today\'s date</string>
+    <string name="today">Today</string>
+    <string name="tomorrow">Tomorrow</string>
+    <string name="after_tomorrow">After Tomorrow</string>
+    <string name="date_templates">Date Templates</string>
+    <string name="predefined">Predefined</string>
+    <string name="custom">Custom</string>
+    <string name="choose">Choose</string>
+    <string name="up_to_three_tags">Up to three tags</string>
+    <string name="tag_name">Tag Name</string>
+
 
 </resources>

@@ -53,4 +53,17 @@
     <string name="minute">دقیقه</string>
     <string name="set_time_and_date">تنظیم تاریخ و ساعت</string>
     <string name="invalid_input">ورودی نامعتبر</string>
+    <string name="day_before_today">مقدار روز وارد شده قبل از امروز است</string>
+    <string name="month_before_this_month">مقدار ماه وارد شده قبل از ماه جاری است</string>
+    <string name="year_before_this_year">مقدار سال وارد شده قبل از سال جاری است</string>
+    <string name="the_date_entered_is_before_today_s_date">تاریخ وارد شده قبل از تاریخ امروز است</string>
+    <string name="today">امروز</string>
+    <string name="tomorrow">فردا</string>
+    <string name="after_tomorrow">پس فردا</string>
+    <string name="date_templates">تاریخ های آماده</string>
+    <string name="predefined">تعریف شده</string>
+    <string name="custom">سفارشی</string>
+    <string name="choose">انتخاب کنید</string>
+    <string name="up_to_three_tags">حداکثر تا سه برچسب</string>
+    <string name="tag_name">نام برچسب </string>
 </resources>

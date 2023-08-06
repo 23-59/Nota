@@ -1,10 +1,15 @@
 package com.A_23_59.hypernote
 
+import android.annotation.SuppressLint
 import android.content.res.Configuration.UI_MODE_NIGHT_YES
+import android.os.Build
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -13,31 +18,32 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.constraintlayout.compose.ChainStyle
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import com.A_23_59.hypernote.destinations.AddPageDestination
 import com.A_23_59.hypernote.destinations.SettingsPageDestination
-import com.A_23_59.hypernote.destinations.SortDialogDestination
 import com.A_23_59.hypernote.ui.theme.*
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
@@ -46,7 +52,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.lang.Exception
 
 var isNotScrollingUp by mutableStateOf(false)
 
@@ -56,66 +61,111 @@ var selectBtnIsClicked by mutableStateOf(false)
 
 var showWelcomeScreen by mutableStateOf(true)
 
+
 val showTopAppBar by derivedStateOf { !selectBtnIsClicked && !searchBtnIsClicked }
-var year by mutableStateOf("")
-var month by mutableStateOf("")
-var day by mutableStateOf("")
-var hour by mutableStateOf("")
-var minute by mutableStateOf("")
 
-data class Item(val title: String, val description: String, val color: Color)
 
-val itemList = ArrayList<Item>()
+data class Item(
+    val title: String,
+    val description: String,
+    val color: Color,
+    val tagNumber1: String? = null,
+    val tagNumber2: String? = null,
+    val tagNumber3: String? = null,
+
+    )
+
+
+val taskList =
+    ArrayList<Item>()  //TODO  IMPORTANT !!! your list will duplicate items because you don't have ViewModel
 
 
 @Composable
-fun Task(
+fun TaskOrNote(
     title: String = "",
     description: String = "",
     priorityColor: Color? = null,
-    itemIsTask: Boolean = true
-) {
+    tags: Array<String?> = arrayOf("", "", ""),
+    itemIsTask: Boolean = true,
+
+    ) {
+    var expandButtonIsClicked by remember { mutableStateOf(false) }
 
     val gradientBackground = when (priorityColor) {
-        Color.Red -> Brush.verticalGradient(listOf(lighterRed, darkerRed), startY = -15f)
-        Gold200 -> Brush.verticalGradient(listOf(lighterYellow, warning), startY = -10f)
-        Color.Blue -> Brush.verticalGradient(listOf(lighterBlue, darkerBlue), startY = -10f)
+        Color.Red -> redGradient
+        Gold200 -> goldGradient
+        Color.Blue -> blueGradient
         else -> throw java.lang.IllegalArgumentException("the color of the background is invalid")
     }
 
     Card(
         modifier = Modifier
-            .padding(all = 16.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 20.dp)
             .fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp), elevation = if (!themeIsDark) 12.dp else 0.dp
+        shape = RoundedCornerShape(12.dp), elevation = 11.dp
     ) {
         ConstraintLayout(
             Modifier
-                .width(intrinsicSize = IntrinsicSize.Max)
+                .fillMaxWidth()
                 .background(gradientBackground)
+
         ) {
 
-            val (titlePosition, descriptionPosition, checkboxPosition, taskTypePosition, tagsPosition, creationDateTextPosition, creationDatePosition, dueDateTextPosition, dueDatePosition, deletePosition, editPosition) = createRefs()
+            val (titlePosition, descriptionPosition, dividerPosition, checkboxPosition, expandButtonPosition, taskTypePosition, tagsPosition, creationDateTextPosition, creationDatePosition, dueDateTextPosition, dueDatePosition, deletePosition, editPosition) = createRefs()
 
             val endGuideLine = createGuidelineFromEnd(16.dp)
-
             Text(
                 text = title, style = MaterialTheme.typography.h6,
                 color = Color.White,
                 modifier = Modifier
                     .constrainAs(titlePosition) {
 
-                        start.linkTo(parent.start, 8.dp)
-                        top.linkTo(parent.top, 8.dp)
-                        if (itemIsTask) end.linkTo(taskTypePosition.start, 24.dp) else end.linkTo(
-                            parent.end,
-                            16.dp
-                        )
+                        start.linkTo(dividerPosition.end, 12.dp)
+                        if (itemIsTask) {
+                            top.linkTo(taskTypePosition.top)
+                            end.linkTo(taskTypePosition.start, 24.dp)
+                        } else {
+                            top.linkTo(parent.top, 8.dp)
+                            end.linkTo(parent.end, 8.dp)
+                        }
                         width = Dimension.fillToConstraints
-
 
                     }
             )
+
+            if (description.length >= 40) {
+                val expandButtonIcon by remember { derivedStateOf { if (expandButtonIsClicked) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown } }
+                AnimatedContent(
+                    targetState = expandButtonIcon,
+                    modifier = Modifier.constrainAs(expandButtonPosition) {
+
+
+                        if (tagNumber1.isEmpty() && tagNumber2.isEmpty() && tagNumber3.isEmpty())
+                            top.linkTo(creationDateTextPosition.bottom, 8.dp)
+                        else
+                            top.linkTo(tagsPosition.bottom, 8.dp)
+
+                        start.linkTo(parent.start)
+                        end.linkTo(parent.end)
+                        width = Dimension.fillToConstraints
+
+                    },
+                    label = "expandButton"
+                ) {
+                    IconButton(
+                        onClick = { expandButtonIsClicked = !expandButtonIsClicked },
+                    ) {
+                        Icon(
+                            imageVector = it,
+                            contentDescription = "expand",
+                            tint = Color.White,
+                            modifier = Modifier.size(35.dp)
+                        )
+                    }
+                }
+
+            }
+
             if (itemIsTask) {
                 Icon(
                     painter = painterResource(
@@ -127,20 +177,34 @@ fun Task(
                         end.linkTo(endGuideLine, (-8).dp)
                         top.linkTo(parent.top, 8.dp)
                     })
+
             }
 
             if (description.isNotEmpty()) {
-                Text(
-                    text = description,
-                    color = Color.White.copy(alpha = 0.90F), style = MaterialTheme.typography.body1,
-                    modifier = Modifier
-                        .constrainAs(descriptionPosition) {
-                            width = Dimension.fillToConstraints
-                            height = Dimension.wrapContent
-                            top.linkTo(titlePosition.bottom, 12.dp)
-                            start.linkTo(titlePosition.start)
-                            end.linkTo(endGuideLine, 24.dp)
-                        })
+                AnimatedContent(targetState = if (expandButtonIsClicked) Int.MAX_VALUE else 1,
+                    label = "descriptionAnimation", transitionSpec = {
+                        ContentTransform(
+                            fadeIn(), fadeOut()
+                        )
+                    }, modifier = Modifier.constrainAs(descriptionPosition) {
+                        width = Dimension.fillToConstraints
+                        top.linkTo(titlePosition.bottom, 12.dp)
+                        start.linkTo(titlePosition.start)
+                        end.linkTo(endGuideLine, 24.dp)
+                    }
+                ) {
+                    Text(
+                        text = description,
+                        textAlign = TextAlign.Start,
+                        maxLines = it,
+                        overflow = TextOverflow.Ellipsis,
+                        color = Color.White.copy(alpha = 0.90F),
+                        style = MaterialTheme.typography.body1,
+
+
+                        )
+                }
+
             }
             if (itemIsTask) {
                 Checkbox(
@@ -148,14 +212,15 @@ fun Task(
                     colors = CheckboxDefaults.colors(uncheckedColor = Color.White),
                     onCheckedChange = {},
                     modifier = Modifier.constrainAs(checkboxPosition) {
-                        end.linkTo(endGuideLine, (-16).dp)
-                        bottom.linkTo(parent.bottom, 2.dp)
+                        start.linkTo(parent.start)
+                        top.linkTo(taskTypePosition.top)
+
                     })
             }
 
             IconButton(onClick = { /*TODO*/ }, modifier = Modifier.constrainAs(deletePosition) {
-                end.linkTo(checkboxPosition.start, (-2).dp)
-                bottom.linkTo(parent.bottom, 2.dp)
+                start.linkTo(parent.start)
+
             }) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_round_delete_outline_24),
@@ -164,14 +229,38 @@ fun Task(
             }
 
             IconButton(onClick = { /*TODO*/ }, modifier = Modifier.constrainAs(editPosition) {
-                end.linkTo(deletePosition.start)
-                bottom.linkTo(parent.bottom, 2.dp)
+                start.linkTo(parent.start)
+                if (itemIsTask)
+                    top.linkTo(checkboxPosition.bottom, 4.dp)
+                else
+                    top.linkTo(parent.top)
             }) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_outline_edit_24),
                     contentDescription = "edit", tint = Color.White
                 )
             }
+
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .background(Color.White)
+                    .constrainAs(dividerPosition) {
+                        top.linkTo(parent.top)
+                        bottom.linkTo(parent.bottom)
+                        start.linkTo(editPosition.end)
+                        height = Dimension.fillToConstraints
+                    })
+
+            if (itemIsTask)
+                createVerticalChain(
+                    checkboxPosition,
+                    editPosition,
+                    deletePosition,
+                    chainStyle = ChainStyle.Spread
+                )
+            else
+                createVerticalChain(editPosition, deletePosition, chainStyle = ChainStyle.Spread)
 
             val context = LocalContext.current
 
@@ -182,8 +271,17 @@ fun Task(
                     style = MaterialTheme.typography.body2, fontStyle = FontStyle.Italic,
                     color = Color.White.copy(0.92F),
                     modifier = Modifier.constrainAs(dueDateTextPosition) {
-                        if (description.isNotEmpty()) top.linkTo(descriptionPosition.bottom, 16.dp)
-                        else top.linkTo(titlePosition.bottom, 16.dp)
+                        if (description.isNotEmpty()) {
+                            if (tagNumber1.isEmpty() && tagNumber2.isEmpty() && tagNumber3.isEmpty())
+                                top.linkTo(descriptionPosition.bottom, 45.dp)
+                            else
+                                top.linkTo(descriptionPosition.bottom, 24.dp)
+                        } else {
+                            if (tagNumber1.isEmpty() && tagNumber2.isEmpty() && tagNumber3.isEmpty())
+                                top.linkTo(titlePosition.bottom, 32.dp)
+                            else
+                                top.linkTo(titlePosition.bottom, 16.dp)
+                        }
                         start.linkTo(titlePosition.start)
                     })
 
@@ -205,21 +303,45 @@ fun Task(
                 modifier = Modifier.constrainAs(creationDateTextPosition) {
                     start.linkTo(titlePosition.start)
                     if (taskType == context.getString(R.string.persistent)) {
-
-                        if (description.isNotEmpty()) top.linkTo(
-                            descriptionPosition.bottom,
-                            16.dp
-                        ) else top.linkTo(titlePosition.bottom, 16.dp)
+                        if (description.isNotEmpty()) {
+                            if (tagNumber1.isEmpty() && tagNumber2.isEmpty() && tagNumber3.isEmpty())
+                                top.linkTo(descriptionPosition.bottom, 32.dp)
+                            else
+                                top.linkTo(
+                                    descriptionPosition.bottom,
+                                    16.dp
+                                )
+                        } else
+                            if (tagNumber1.isEmpty() && tagNumber2.isEmpty() && tagNumber3.isEmpty())
+                                bottom.linkTo(parent.bottom, 12.dp)
+                            else
+                                top.linkTo(titlePosition.bottom, 16.dp)
 
                     } else {
 
-                        if (itemIsTask) top.linkTo(
-                            dueDateTextPosition.bottom,
-                            12.dp
-                        ) else if (description.isNotEmpty()) top.linkTo(
-                            descriptionPosition.bottom,
-                            16.dp
-                        ) else top.linkTo(titlePosition.bottom, 16.dp)
+                        if (itemIsTask) {
+                            if (tagNumber1.isEmpty() && tagNumber2.isEmpty() && tagNumber3.isEmpty())
+                                top.linkTo(dueDateTextPosition.bottom, 24.dp)
+                            else
+                                top.linkTo(
+                                    dueDateTextPosition.bottom,
+                                    16.dp
+                                )
+                        } else if (description.isNotEmpty()) {
+                            if (tagNumber1.isEmpty() && tagNumber2.isEmpty() && tagNumber3.isEmpty())
+                                top.linkTo(descriptionPosition.bottom, 24.dp)
+                            else
+                                top.linkTo(
+                                    descriptionPosition.bottom,
+                                    16.dp
+                                )
+                        } else
+
+                            if (tagNumber1.isEmpty() && tagNumber2.isEmpty() && tagNumber3.isEmpty())
+                                bottom.linkTo(parent.bottom, 12.dp)
+                            else
+
+                                top.linkTo(titlePosition.bottom, 16.dp)
                     }
 
                 })
@@ -236,40 +358,129 @@ fun Task(
                 }
             )
 
-            Row(Modifier.constrainAs(tagsPosition) {
-                start.linkTo(parent.start, 8.dp)
-                top.linkTo(creationDateTextPosition.bottom, 12.dp)
-                bottom.linkTo(parent.bottom, 8.dp)
-            }, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                MyTag("Daily Tasks", Color.White)
-                MyTag("Work", Color.White)
-                MyTag("Study", Color.White)
+            Column(
+                Modifier
+                    .constrainAs(tagsPosition) {
+                        start.linkTo(dividerPosition.start, 12.dp)
+                        end.linkTo(parent.end, 12.dp)
+                        width = Dimension.fillToConstraints
+
+                        top.linkTo(creationDateTextPosition.bottom, 16.dp)
+                        if (description.length < 40)
+                            bottom.linkTo(parent.bottom, 12.dp)
+
+                    }
+                    .fillMaxWidth()
+                    .padding(vertical = 2.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
+                    if (tagNumber1.isNotEmpty() && tagNumber1.length < 25) {
+                        tags[0]?.let {
+                            MyTag(
+                                it,
+                                Color.White,
+                                borderStroke = 1.dp
+                            ) {
+                                tagNumber--
+                                tagNumber1 = ""
+                                return@MyTag Unit
+                            }
+                        }
+                    }
+                    if (tagNumber2.isNotEmpty() && tagNumber2.length < 20) {
+                        tags[1]?.let {
+                            MyTag(
+                                it,
+                                Color.White,
+                                borderStroke = 1.dp
+                            ) {
+                                tagNumber--
+                                tagNumber2 = ""
+                                return@MyTag Unit
+                            }
+                        }
+                    }
+
+                    if (tagNumber3.isNotEmpty() && tagNumber3.length < 20) {
+                        tags[2]?.let {
+                            MyTag(
+                                it,
+                                Color.White,
+                                borderStroke = 1.dp
+                            ) {
+                                tagNumber--
+                                tagNumber3 = ""
+                                return@MyTag Unit
+                            }
+                        }
+                    }
+
+                }
+                if (tagNumber1.isNotEmpty() && tagNumber1.length >= 25) {
+                    tags[0]?.let {
+                        MyTag(
+                            it,
+                            Color.White,
+                            borderStroke = 1.dp
+                        ) {
+                            tagNumber--
+                            tagNumber1 = ""
+                            return@MyTag Unit
+                        }
+                    }
+
+                }
+
+                if (tagNumber2.length >= 20) {
+                    tags[1]?.let {
+                        MyTag(
+                            it,
+                            Color.White,
+                            borderStroke = 1.dp
+                        ) {
+                            tagNumber--
+                            tagNumber2 = ""
+                            return@MyTag Unit
+                        }
+                    }
+
+                }
+
+                if (tagNumber3.length >= 20) {
+                    tags[2]?.let {
+                        MyTag(
+                            it,
+                            Color.White,
+                            borderStroke = 1.dp
+                        ) {
+                            tagNumber--
+                            tagNumber3 = ""
+                            return@MyTag Unit
+                        }
+                    }
+                }
+
+
             }
+
         }
     }
 
 
 }
 
-@Composable
-fun Note(
-    title: String = "",
-    description: String = "",
-    priorityColor: Color?
-) {
-    Task(
-        priorityColor = priorityColor,
-        title = title,
-        description = description,
-        itemIsTask = false
-    )
-}
 
 @Composable
 private fun LazyListState.isScrollingUp(): Boolean {
     val isScrollingToEnd by remember { derivedStateOf { layoutInfo.visibleItemsInfo.lastOrNull()?.index == layoutInfo.totalItemsCount - 1 } }
-    var previousIndex by remember(this) { mutableStateOf(firstVisibleItemIndex) }
-    var previousScrollOffset by remember(this) { mutableStateOf(firstVisibleItemScrollOffset) }
+    var previousIndex by remember(this) { mutableIntStateOf(firstVisibleItemIndex) }
+    var previousScrollOffset by remember(this) { mutableIntStateOf(firstVisibleItemScrollOffset) }
     return remember(this) {
         derivedStateOf {
             if (isScrollingToEnd) {
@@ -287,22 +498,71 @@ private fun LazyListState.isScrollingUp(): Boolean {
     }.value
 }
 
+@SuppressLint("SuspiciousIndentation")
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun ItemsListSection(elements: List<Item>, showPriorityColor: Boolean) {
-    val lazyListState = rememberLazyListState()
+fun ChipsSection() {
+    val context = LocalContext.current
+    val chipsList = arrayOf(
+        context.getString(R.string.txt_main_importance),
+        context.getString(R.string.txt_main_date),
+        context.getString(R.string.txt_main_ascending),
+        context.getString(R.string.txt_main_descending)
+    )
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(start = 32.dp, end = 32.dp, top = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            for (chipName in chipsList) {
+                Chip(
+                    onClick = { /*TODO*/ },
+                    colors = ChipDefaults.chipColors(backgroundColor = MaterialTheme.colors.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colors.onSurface)
+                ) {
+                    Text(text = chipName)
+                }
+            }
+        }
 
+
+
+}
+
+@Composable
+fun ItemsListSection(elements: List<Item>, itemsAreTasks: Boolean) {
+    val lazyListState = rememberLazyListState()
+    var key = ""
     isNotScrollingUp = lazyListState.isScrollingUp()
     Column {
         LazyColumn(
             state = lazyListState,
             contentPadding = PaddingValues(top = 105.dp),
-            content = {
-                items(elements, key = { it.title }) { item ->
 
-                    if (showPriorityColor)
-                        Task(item.title, item.description, item.color)
+            content = {
+                item { ChipsSection() }
+                items(elements, key = {
+                    key = it.title
+                    it.title
+                }, contentType = { it }) { item ->
+
+                    Log.i(TAG, "ItemsListSection: this method is called and key is $key")
+                    if (itemsAreTasks)
+                        TaskOrNote(
+                            item.title,
+                            item.description,
+                            item.color,
+                            arrayOf(item.tagNumber1, item.tagNumber2, item.tagNumber3)
+                        ) // this one is task
                     else
-                        Note(item.title, item.description, Color.Blue)
+                        TaskOrNote(
+                            item.title,
+                            item.description,
+                            Color.Blue,
+                            tags = arrayOf(item.tagNumber1, item.tagNumber2, item.tagNumber3),
+                            itemIsTask = false,
+                        ) // this one is note
 
 
                 }
@@ -353,24 +613,15 @@ fun MyTabLayout(modifier: Modifier = Modifier, pagerState: PagerState) {
     }
 }
 
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MyViewPager(pagerState: PagerState) {
-    HorizontalPager(pageCount = 2, state = pagerState) { position ->
-
-        var testState by remember {
-            mutableStateOf(0)
-        }
-        testState = pagerState.currentPage
+    HorizontalPager(state = pagerState) { position ->
 
         when (position) {
-            0 -> {
-                Tasks()
-            }
-
-            1 -> {
-                Notes()
-            }
+            0 -> Tasks()
+            1 -> Notes()
         }
     }
 }
@@ -378,28 +629,80 @@ fun MyViewPager(pagerState: PagerState) {
 
 @Composable
 fun Notes() {
-    ItemsListSection(elements = itemList, showPriorityColor = false)
+    ItemsListSection(elements = taskList, itemsAreTasks = false)
+    Log.i(TAG, "Notes: ")
 }
 
 @Composable
 fun Tasks() {
-    ItemsListSection(elements = itemList, showPriorityColor = true)
+
+    ItemsListSection(elements = taskList, itemsAreTasks = true)
+    Log.i(TAG, "Tasks: ")
 }
 
 @Composable
-fun MyTag(tagTitle: String = "", color: Color) {
+fun MyTag(
+    tagTitle: String = "",
+    color: Color,
+    modifier: Modifier = Modifier, textAlignment: TextAlign = TextAlign.Center,
+    textModifier: Modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+    roundedCornerValue: Dp = 5.dp,
+    deletable: Boolean = false,
+    borderStroke: Dp = 2.dp,
+    onClick: (() -> Unit?)? = null,
+): Boolean {
+
+
     Surface(
         color = Color.Transparent,
-        border = BorderStroke(width = 2.dp, color),
-        modifier = Modifier.padding(top = 8.dp),
-        shape = RoundedCornerShape(5.dp)
+        border = BorderStroke(width = borderStroke, color),
+        modifier = modifier,
+        shape = RoundedCornerShape(roundedCornerValue)
     ) {
-        Text(
-            text = tagTitle, color = Color.White, fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-            style = MaterialTheme.typography.caption,
-        )
+        if (deletable)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = tagTitle,
+                    color = color,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = textAlignment,
+                    modifier = textModifier,
+                    style = MaterialTheme.typography.caption,
+                )
+                IconButton(
+                    onClick = {
+                        if (onClick != null) {
+                            onClick()
+                        }
+                    },
+                    modifier = Modifier.size(26.dp),
+                    interactionSource = MutableInteractionSource()
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = "close",
+                        tint = MaterialTheme.colors.onSurface,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+
+            }
+        else
+            Text(
+                text = tagTitle,
+                color = color,
+                fontWeight = FontWeight.Bold,
+                textAlign = textAlignment,
+                modifier = textModifier,
+                style = MaterialTheme.typography.caption,
+            )
+
     }
+    return tagTitle.length > 15
 }
 
 @Composable
@@ -425,12 +728,6 @@ fun MyTopAppbar(modifier: Modifier = Modifier, navigator: DestinationsNavigator)
                     contentDescription = null
                 )
             }
-            IconButton(onClick = { navigator.navigate(SortDialogDestination) }) {
-                Icon(
-                    painter = painterResource(id = R.drawable.sort_svgrepo_com),
-                    contentDescription = "sort"
-                )
-            }
             IconButton(onClick = { /*TODO*/ }) {
                 Icon(
                     painter = painterResource(id = R.drawable.category_variety_random_shuffle_svgrepo_com),
@@ -453,6 +750,7 @@ fun MyTopAppbar(modifier: Modifier = Modifier, navigator: DestinationsNavigator)
 
 }
 
+@SuppressLint("UnusedContentLambdaTargetStateParameter")
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MyFab(pagerState: PagerState, navigator: () -> Unit) {
@@ -462,12 +760,12 @@ fun MyFab(pagerState: PagerState, navigator: () -> Unit) {
         enter = slideInVertically() + fadeIn(),
         exit = fadeOut() + slideOutVertically()
     ) {
-        AnimatedContent(targetState = pagerState.currentPage) {
+        AnimatedContent(targetState = pagerState.currentPage, label = "Test") {
             ExtendedFloatingActionButton(
                 modifier = Modifier.shadow(
                     spotColor = if (themeIsDark) Color.White else Color.Black,
                     elevation = 7.dp,
-                    shape = RoundedCornerShape(20.dp)
+                    shape = RoundedCornerShape(30.dp)
                 ),
                 text = {
                     Text(
@@ -479,7 +777,7 @@ fun MyFab(pagerState: PagerState, navigator: () -> Unit) {
                     )
 
 
-                }, shape = RoundedCornerShape(20.dp),
+                }, shape = RoundedCornerShape(30.dp),
                 onClick = { navigator() },
                 icon = {
                     Icon(
@@ -528,7 +826,11 @@ fun SortSectionDisplay() {
 @Destination
 @Composable
 fun HomePage(navigator: DestinationsNavigator) {
-    val pagerState = rememberPagerState(0)
+    val pagerState = rememberPagerState(
+        initialPage = 0,
+        initialPageOffsetFraction = 0f
+    ) { 2 }
+
 
 
     Scaffold(
@@ -700,238 +1002,29 @@ fun SelectMode() {
 
 }
 
-@Destination(style = MyDialogStyle::class)
-@Composable
-fun ChooseDateTimeDialog(navigator: DestinationsNavigator) {
-
-    var minuteError by remember { mutableStateOf(false) }
-    var hourError by remember { mutableStateOf(false) }
-    var dayError by remember { mutableStateOf(false) }
-    var monthError by remember { mutableStateOf(false) }
-    var yearError by remember { mutableStateOf(false) }
-    val context = LocalContext.current
-    var setDateAndTimeIsEnabled by remember { mutableStateOf(false) }
-    setDateAndTimeIsEnabled =
-        !hourError && !minuteError && !dayError && !monthError && !yearError && minute.isNotEmpty() && hour.isNotEmpty() && year.isNotEmpty() && month.isNotEmpty() && day.isNotEmpty()
-
-
-    Card(
-        shape = RoundedCornerShape(15.dp)
-    ) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-            Text(
-                text = stringResource(R.string.date),
-                style = MaterialTheme.typography.h6,
-                modifier = Modifier.padding(top = 16.dp)
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.padding(top = 12.dp)
-            ) {
-                TextField(value = day,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    placeholder = { Text(text = stringResource(R.string.day)) },
-                    modifier = Modifier
-                        .width(60.dp)
-                        .weight(1f), isError = dayError,
-                    onValueChange = {
-                        try {
-                            if (it.length < 3) day = it
-                            if (day.isNotEmpty())
-                                dayError = day.toInt() > 31 || day.toInt() == 0
-                        }
-                        catch (e:Exception){
-                           Toast.makeText(context,context.getString(R.string.invalid_input),Toast.LENGTH_SHORT).show()
-                           day = ""
-                        }
-
-                    })
-                TextField(value = month,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    placeholder = { Text(text = stringResource(R.string.month)) },
-                    modifier = Modifier
-                        .width(60.dp)
-                        .weight(1f), isError = monthError,
-                    onValueChange = {
-                        try {
-                            if (it.length < 3) month = it // TODO  these text fields won't work with 04 like values
-                            if (month.isNotEmpty())
-                                monthError = month.toInt() > 12 || month.toInt() ==0
-                        }
-                        catch (e:Exception){
-                            Toast.makeText(context,context.getString(R.string.invalid_input),Toast.LENGTH_SHORT).show()
-                            month = ""
-                        }
-
-                    })
-                TextField(value = year,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    placeholder = { Text(text = stringResource(R.string.year)) },
-                    modifier = Modifier
-                        .width(60.dp)
-                        .weight(1f), isError = yearError,
-                    onValueChange = {
-                        try {
-                            if (it.length < 5) year = it
-                            if (year.isNotEmpty())
-                                yearError =
-                                    if (selectedLocale == "fa-ir") year.toInt() < 1402 else year.toInt() < 2023
-                        }
-                        catch (e:Exception){
-                            Toast.makeText(context, context.getString(R.string.invalid_input),Toast.LENGTH_SHORT).show()
-                            year=""
-                        }
-
-                    })
-            }
-            Spacer(modifier = Modifier.height(32.dp))
-            Text(
-                text = stringResource(R.string.time),
-                style = MaterialTheme.typography.h6
-            )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.padding(top = 16.dp)
-            ) {
-                TextField(
-                    value = hour,
-                    placeholder = { Text(text = stringResource(R.string.hour)) },
-                    onValueChange = {
-                        try {
-                            if (it.length < 3) hour = it
-                            if (hour.isNotEmpty())
-                                hourError = hour.toInt() > 23 || hour.toInt() == 0
-                        }
-                        catch (e:Exception){
-                            Toast.makeText(context, context.getString(R.string.invalid_input),Toast.LENGTH_SHORT).show()
-                            hour=""
-                        }
-
-                    },
-                    modifier = Modifier
-                        .width(60.dp)
-                        .weight(1F), isError = hourError,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-                Text(text = ":", style = MaterialTheme.typography.h4)
-                TextField(
-                    value = minute,
-                    placeholder = { Text(text = stringResource(R.string.minute)) },
-                    onValueChange = {
-                        try {
-                            if (it.length < 3) minute = it
-                            if (minute.isNotEmpty())
-                                minuteError = minute.toInt() > 59 || minute.toInt() == 0
-                        }
-                        catch (e :Exception){
-                            Toast.makeText(context, context.getString(R.string.invalid_input),Toast.LENGTH_SHORT).show()
-                            minute=""
-                        }
-
-                    }, isError = minuteError,
-                    modifier = Modifier
-                        .width(60.dp)
-                        .weight(1F),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-            }
-            Spacer(modifier = Modifier.height(32.dp))
-            Button(
-                onClick = {
-                    date[0] = day.toInt()
-                    date[1] = month.toInt()
-                    date[2] = year.toInt()
-                    time[0] = hour.toInt()
-                    time[1] = minute.toInt()
-                    dateAndTime =
-                        "${context.getString(R.string.due_date)} ${date[0]}/${date[1]}/${date[2]}  ${
-                            context.getString(
-                                R.string.at
-                            )
-                        } ${time[1]} : ${time[0]}"
-                    navigator.navigateUp()
-                }, enabled = setDateAndTimeIsEnabled, modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp)
-
-            ) {
-                Text(
-                    text = stringResource(R.string.set_time_and_date),
-                    style = MaterialTheme.typography.body1,
-                    color = MaterialTheme.colors.onSurface
-                )
-            }
-        }
-    }
-}
-
-@Destination(style = MyDialogStyle::class)
-@Composable
-fun SortDialog(navigator: DestinationsNavigator) {
-
-    val items = listOf(
-        stringResource(R.string.txt_main_ascending),
-        stringResource(R.string.txt_main_descending),
-        stringResource(
-            R.string.txt_main_importance
-        ),
-        stringResource(R.string.txt_main_date)
-    )
-    var selectedItem by remember { mutableStateOf("") }
-    Card(shape = RoundedCornerShape(15.dp)) {
-        Column(Modifier.selectableGroup()) {
-            Text(
-                text = stringResource(R.string.sort_as),
-                modifier = Modifier.padding(start = 12.dp, top = 8.dp, bottom = 4.dp),
-                style = MaterialTheme.typography.h6
-            )
-            items.forEach { label ->
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .selectable(
-                            selected = label == selectedItem,
-                            onClick = {
-                                CoroutineScope(Main).launch {
-                                    selectedItem = label
-                                    delay(500)
-                                    navigator.navigateUp()
-                                }
-                            },
-                            role = Role.RadioButton
-                        )
-                        .padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(
-                        selected = selectedItem == label,
-                        onClick = null,
-                        modifier = Modifier.padding(end = 16.dp)
-                    )
-                    Text(text = label)
-                }
-            }
-        }
-
-    }
-}
-
+@RequiresApi(Build.VERSION_CODES.N)
 @Destination
 @Composable
 fun EditPage(navigator: DestinationsNavigator) {
     AddNewItem(edit_or_add = 'E', navigator = navigator)
 }
 
+@RequiresApi(Build.VERSION_CODES.N)
 @Destination
 @Composable
 fun AddPage(navigator: DestinationsNavigator, pagerState: Int) {
     val context = LocalContext.current
     BackHandler {
-        dateAndTime = context.getString(R.string.due_date)
-        for (i in date.indices) {
-            date[i] = 0
-        }
+        txtShowDateAndTime = context.getString(R.string.due_date)
+        yearFromTextField = 0.toString()
+        monthFromTextField = 0.toString()
+        dayFromTextField = 0.toString()
+        hourFromTextField = 0.toString()
+        minuteFromTextField = 0.toString()
+        tagNumber = 0
+        tagNumber1 = ""
+        tagNumber2 = ""
+        tagNumber3 = ""
         navigator.navigateUp()
     }
     AddNewItem(task_or_note = if (pagerState == 0) 'T' else 'N', navigator = navigator)
@@ -978,7 +1071,7 @@ fun MyActionSectionPreview() {
 @Composable
 fun ItemListSectionPreview() {
 
-    ItemsListSection(itemList, showPriorityColor = true)
+    ItemsListSection(taskList, itemsAreTasks = true)
 }
 
 @Preview
@@ -987,15 +1080,27 @@ fun MyTagPreview() {
     MyTag("Daily", Color.Blue)
 }
 
-@Preview
+@Preview(locale = "fa")
 @Composable
-fun SingleItemPreview() {
-    Task(
-        title = "First Task",
-        description = "this is the first task that i will do in this app",
+fun SingleTaskPreview() {
+    TaskOrNote(
+        title = "این اولین وظیفه ایه که من میخوام تو این برنامه تعریف کنم",
+        description = "شاید این متن بلند بتونه کمکم کنه که ایراد های برنامه رو پیدا کنم",
         priorityColor = Color.Red
     )
 }
+
+@Preview
+@Composable
+fun SingleNotePreview() {
+    TaskOrNote(
+        "این اولین یادداشتی هست که میخوام برای این برنامه بنویسم",
+        "شاید این متن ها به نظر عجیب و غیرمنطقی باشه ولی برای تست کردن ظاهر برنامه لازمه",
+        Color.Blue,
+        itemIsTask = false
+    )
+}
+
 
 @Preview(uiMode = UI_MODE_NIGHT_YES, showSystemUi = true)
 @Composable

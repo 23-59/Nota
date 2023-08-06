@@ -15,9 +15,14 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.A_23_59.hypernote.ui.theme.Gold200
 import com.A_23_59.hypernote.ui.theme.HyperNoteTheme
 import com.ramcosta.composedestinations.DestinationsNavHost
+import java.text.SimpleDateFormat
+import java.util.Date
 
-var selectedLocale by mutableStateOf("en")
-val s  = 04f
+var selectedLocale by mutableStateOf("fa-ir")
+var currentSystemYear = 0
+var currentSystemMonth = 0
+var currentSystemDay = 0
+
 fun gregorian_to_jalali(gy: Int =0, gm: Int =0, gd: Int =0): IntArray {
     val g_d_m: IntArray = intArrayOf(0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334)
     val gy2: Int = if (gm > 2) (gy + 1) else gy
@@ -71,18 +76,37 @@ class MainActivity : AppCompatActivity() {
 
         super.onCreate(savedInstanceState)
 
-        itemList.add(Item("پرداخت شهریه دانشگاه", "این ماه رو باید از یکی قرض کنم", Color.Red))
-        itemList.add(Item("آب دادن به گل ها", "", Gold200))
-        itemList.add(Item("ورزش صبحگاهی", "", Color.Blue))
-        itemList.add(Item("تحویل پروژه آخر ترم", "", Color.Red))
-        itemList.add(Item("تمرین زبان انگلیسی", "امروز فقط روی گرامر تمرکز میکنی", Gold200))
-        itemList.add(Item("some coding !", "code practicing will increase your coding skills", Color.Blue))
-        itemList.add(Item("drink one glass of  water after each 1 hour", "you better do this to stay hydrate!", Color.Blue))
-        itemList.add(Item("task eight", "", Gold200))
-        itemList.add(Item("task nine", "", Color.Blue))
-        itemList.add(Item("task ten", "", Color.Red))
-        itemList.add(Item("task eleven", "", Color.Red))
-        itemList.add(Item("task twelve", "", Color.Blue))
+        if (selectedLocale == "fa-ir") {
+
+            val date = gregorian_to_jalali(
+                SimpleDateFormat("yyyy").format(Date()).toInt(),
+                SimpleDateFormat("MM").format(Date()).toInt(),
+                SimpleDateFormat("dd").format(Date()).toInt()
+            )
+            currentSystemYear = date[0]
+            currentSystemMonth = date[1]
+            currentSystemDay = date[2]
+        } else {
+            currentSystemYear = SimpleDateFormat("yyyy").format(Date()).toInt()
+            currentSystemMonth = SimpleDateFormat("MM").format(Date()).toInt()
+            currentSystemDay = SimpleDateFormat("dd").format(Date()).toInt()
+        }
+
+
+
+
+        taskList.add(Item("پرداخت شهریه دانشگاه", "این ماه رو باید از یکی قرض کنم", Color.Red,"کارهای دانشگاه","مطالعه","قرض ها"))
+        taskList.add(Item("تحویل دادن کتاب ها به کتابخونه", "", Gold200,"مطالعه","کتابخونه"))
+        taskList.add(Item("ورزش صبحگاهی", "", Color.Blue,"ورزش","کارهای روزانه"))
+        taskList.add(Item("خواندن ده صفحه کتاب روزانه", "حداقل صفحاتی که هرروز برای خوندن لازمه و میتونه تورو به کتاب خوندن عادت بده و یه روتین کتابخونی برات درست بشه ده صفحه ست ", Color.Red,"کارهای روزانه","مطالعه","روانشناسی"))
+        taskList.add(Item("تمرین زبان انگلیسی", "امروز فقط روی گرامر تمرکز میکنی", Gold200,"کارهای روزانه","زبان","مهاجرت"))
+        taskList.add(Item("some coding !", "code practicing will increase your coding skills", Color.Blue,"coding"))
+        taskList.add(Item("drink one glass of  water after each 1 hour", "you better do this to stay hydrate!", Color.Blue,"daily routine","self care","hydration"))
+        taskList.add(Item("task eight", "", Gold200))
+        taskList.add(Item("task nine", "", Color.Blue))
+        taskList.add(Item("task ten", "", Color.Red))
+        taskList.add(Item("task eleven", "", Color.Red))
+        taskList.add(Item("task twelve", "", Color.Blue))
         installSplashScreen()
         taskType = this.getString(R.string.persistent)
         setContent {
