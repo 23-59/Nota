@@ -1,12 +1,7 @@
 package com.A_23_59.hypernote
 
 import android.annotation.SuppressLint
-import android.content.res.Configuration.UI_MODE_NIGHT_YES
-import android.os.Build
 import android.util.Log
-import android.widget.Toast
-import androidx.activity.compose.BackHandler
-import androidx.annotation.RequiresApi
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -15,24 +10,24 @@ import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,16 +37,11 @@ import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ChainStyle
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
-import com.A_23_59.hypernote.destinations.AddPageDestination
-import com.A_23_59.hypernote.destinations.SettingsPageDestination
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.A_23_59.hypernote.ui.theme.*
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootNavGraph
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers.Main
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
 
 var isNotScrollingUp by mutableStateOf(false)
 
@@ -61,67 +51,119 @@ var selectBtnIsClicked by mutableStateOf(false)
 
 var showWelcomeScreen by mutableStateOf(true)
 
+var selectedItems = mutableStateListOf<Item>()
+
+var tasksTagsList = ArrayList<Tag>()
+var notesTagsList = ArrayList<Tag>()
+
+var currentPage by mutableIntStateOf(0)
+
 
 val showTopAppBar by derivedStateOf { !selectBtnIsClicked && !searchBtnIsClicked }
+
+enum class Priority {
+    LOW, MEDIUM, HIGH
+}
 
 
 data class Item(
     val title: String,
     val description: String,
-    val color: Color,
+    val priority: Priority = Priority.LOW,
     val tagNumber1: String? = null,
     val tagNumber2: String? = null,
     val tagNumber3: String? = null,
+    val dueDate: Array<String>? = null,
+    val repeatTime: String? = null,
+    var isChecked: Boolean? = false,
+    val hasReminder: Boolean = false
 
-    )
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Item
+
+        if (!dueDate.contentEquals(other.dueDate)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return dueDate.contentHashCode()
+    }
+}
 
 
 val taskList =
-    ArrayList<Item>()  //TODO  IMPORTANT !!! your list will duplicate items because you don't have ViewModel
+    mutableStateListOf<Item>()//TODO  IMPORTANT !!! your list will duplicate items because you don't have ViewModel
 
+val noteList = mutableListOf<Item>()
 
+var itemWidth = 0.dp
+
+@SuppressLint("SuspiciousIndentation")
 @Composable
 fun TaskOrNote(
-    title: String = "",
-    description: String = "",
-    priorityColor: Color? = null,
-    tags: Array<String?> = arrayOf("", "", ""),
     itemIsTask: Boolean = true,
+    item: Item,
 
     ) {
-    var expandButtonIsClicked by remember { mutableStateOf(false) }
-
-    val gradientBackground = when (priorityColor) {
-        Color.Red -> redGradient
-        Gold200 -> goldGradient
-        Color.Blue -> blueGradient
-        else -> throw java.lang.IllegalArgumentException("the color of the background is invalid")
+    var isSelected by rememberSaveable { mutableStateOf(false) }
+    val interactionSource = MutableInteractionSource()
+    var expandButtonIsClicked by rememberSaveable { mutableStateOf(false) }
+    val density = LocalDensity.current
+    val gradientBackground = remember(key1 = item.priority) {
+        when (item.priority) {
+            Priority.HIGH -> redGradient
+            Priority.MEDIUM -> goldGradient
+            Priority.LOW -> blueGradient
+        }
     }
 
     Card(
         modifier = Modifier
             .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 20.dp)
-            .fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp), elevation = 11.dp
+            .fillMaxWidth()
+            .onGloballyPositioned {
+                itemWidth = with(density) {
+                    it.size.width.toDp()
+                }
+            }
+            .clickable(
+                enabled = selectBtnIsClicked,
+                indication = null,
+                interactionSource = interactionSource
+            ) {
+                isSelected = !isSelected
+                if (isSelected)
+                    selectedItems.add(item)
+                else
+                    selectedItems.remove(item)
+
+            },
+        shape = RoundedCornerShape(12.dp), elevation = 16.dp
     ) {
+        if (!selectBtnIsClicked)
+            isSelected = false
         ConstraintLayout(
             Modifier
                 .fillMaxWidth()
-                .background(gradientBackground)
+                .background(if (isSelected) greyGradient else gradientBackground),
 
-        ) {
+            ) {
 
-            val (titlePosition, descriptionPosition, dividerPosition, checkboxPosition, expandButtonPosition, taskTypePosition, tagsPosition, creationDateTextPosition, creationDatePosition, dueDateTextPosition, dueDatePosition, deletePosition, editPosition) = createRefs()
+            val (titlePosition, descriptionPosition, dividerPosition, reminderPosition, checkboxPosition, expandButtonPosition, taskTypePosition, tagsPosition, dueDateTextPosition, dueDatePosition, deletePosition, editPosition) = createRefs()
 
-            val endGuideLine = createGuidelineFromEnd(16.dp)
             Text(
-                text = title, style = MaterialTheme.typography.h6,
+                text = item.title, style = MaterialTheme.typography.h6,
                 color = Color.White,
                 modifier = Modifier
                     .constrainAs(titlePosition) {
 
                         start.linkTo(dividerPosition.end, 12.dp)
-                        if (itemIsTask) {
+                        if (itemIsTask && selectedRepeatTaskOption.isNotEmpty()) {
                             top.linkTo(taskTypePosition.top)
                             end.linkTo(taskTypePosition.start, 24.dp)
                         } else {
@@ -133,7 +175,7 @@ fun TaskOrNote(
                     }
             )
 
-            if (description.length >= 40) {
+            if (item.description.length >= 40) {
                 val expandButtonIcon by remember { derivedStateOf { if (expandButtonIsClicked) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown } }
                 AnimatedContent(
                     targetState = expandButtonIcon,
@@ -141,7 +183,7 @@ fun TaskOrNote(
 
 
                         if (tagNumber1.isEmpty() && tagNumber2.isEmpty() && tagNumber3.isEmpty())
-                            top.linkTo(creationDateTextPosition.bottom, 8.dp)
+                            top.linkTo(descriptionPosition.bottom, 8.dp)
                         else
                             top.linkTo(tagsPosition.bottom, 8.dp)
 
@@ -167,20 +209,43 @@ fun TaskOrNote(
             }
 
             if (itemIsTask) {
-                Icon(
-                    painter = painterResource(
-                        id = if (taskType == stringResource(id = R.string.persistent)) R.drawable.round_autorenew_24 else R.drawable.round_timelapse_30
-                    ),
-                    tint = Color.White,
-                    contentDescription = "task type",
-                    modifier = Modifier.constrainAs(taskTypePosition) {
-                        end.linkTo(endGuideLine, (-8).dp)
-                        top.linkTo(parent.top, 8.dp)
-                    })
+                if (item.repeatTime?.isNotEmpty() == true)
+                    Icon(
+                        painter = painterResource(
+                            id = R.drawable.clock_refresh
+                        ),
+                        tint = Color.White.copy(0.7f),
+                        contentDescription = "task type",
+                        modifier = Modifier
+                            .constrainAs(taskTypePosition) {
+                                end.linkTo(parent.end, 8.dp)
+                                top.linkTo(parent.top, 8.dp)
+                            }
+                            .size(24.dp))
+
+                if (item.hasReminder)
+                    Icon(tint = Color.White.copy(0.7f),
+                        painter = painterResource(id = R.drawable.bell_01),
+                        contentDescription = "reminder",
+                        modifier = Modifier
+                            .constrainAs(reminderPosition) {
+                                if (item.repeatTime?.isNotEmpty() == true) {
+                                    top.linkTo(taskTypePosition.bottom, 16.dp)
+                                    start.linkTo(taskTypePosition.start)
+                                    end.linkTo(taskTypePosition.end)
+                                } else {
+                                    top.linkTo(parent.top, 8.dp)
+                                    end.linkTo(parent.end, 8.dp)
+                                }
+
+
+                            }
+                            .size(24.dp)
+                    )
 
             }
 
-            if (description.isNotEmpty()) {
+            if (item.description.isNotEmpty()) {
                 AnimatedContent(targetState = if (expandButtonIsClicked) Int.MAX_VALUE else 1,
                     label = "descriptionAnimation", transitionSpec = {
                         ContentTransform(
@@ -190,11 +255,11 @@ fun TaskOrNote(
                         width = Dimension.fillToConstraints
                         top.linkTo(titlePosition.bottom, 12.dp)
                         start.linkTo(titlePosition.start)
-                        end.linkTo(endGuideLine, 24.dp)
+                        end.linkTo(taskTypePosition.start, 16.dp)
                     }
                 ) {
                     Text(
-                        text = description,
+                        text = item.description,
                         textAlign = TextAlign.Start,
                         maxLines = it,
                         overflow = TextOverflow.Ellipsis,
@@ -207,15 +272,25 @@ fun TaskOrNote(
 
             }
             if (itemIsTask) {
-                Checkbox(
-                    checked = false,
-                    colors = CheckboxDefaults.colors(uncheckedColor = Color.White),
-                    onCheckedChange = {},
-                    modifier = Modifier.constrainAs(checkboxPosition) {
-                        start.linkTo(parent.start)
-                        top.linkTo(taskTypePosition.top)
+                item.isChecked?.let {
+                    AnimatedContent(
+                        targetState = item.isChecked,
+                        label = "itemIsChecked",
+                        modifier = Modifier
+                            .constrainAs(checkboxPosition) {
+                                start.linkTo(parent.start)
+                                top.linkTo(parent.top)
 
-                    })
+                            }) { checked ->
+                        IconButton(onClick = { item.isChecked = !item.isChecked!! }) {
+                            Icon(
+                                painter = if (checked == true) painterResource(id = R.drawable.check_square) else painterResource(
+                                    id = R.drawable.square
+                                ), tint = Color.White, contentDescription = "CheckedStatus"
+                            )
+                        }
+                    }
+                }
             }
 
             IconButton(onClick = { /*TODO*/ }, modifier = Modifier.constrainAs(deletePosition) {
@@ -223,7 +298,7 @@ fun TaskOrNote(
 
             }) {
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_round_delete_outline_24),
+                    painter = painterResource(id = R.drawable.trash_01),
                     contentDescription = "delete", tint = Color.White
                 )
             }
@@ -236,7 +311,7 @@ fun TaskOrNote(
                     top.linkTo(parent.top)
             }) {
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_outline_edit_24),
+                    painter = painterResource(id = R.drawable.edit_02),
                     contentDescription = "edit", tint = Color.White
                 )
             }
@@ -264,18 +339,18 @@ fun TaskOrNote(
 
             val context = LocalContext.current
 
-            if (itemIsTask && taskType == context.getString(R.string.temporary)) {
+            if (itemIsTask && item.dueDate != null) {
 
                 Text(
                     text = stringResource(R.string.task_due_date),
-                    style = MaterialTheme.typography.body2, fontStyle = FontStyle.Italic,
+                    style = MaterialTheme.typography.body2,
                     color = Color.White.copy(0.92F),
                     modifier = Modifier.constrainAs(dueDateTextPosition) {
-                        if (description.isNotEmpty()) {
-                            if (tagNumber1.isEmpty() && tagNumber2.isEmpty() && tagNumber3.isEmpty())
-                                top.linkTo(descriptionPosition.bottom, 45.dp)
-                            else
-                                top.linkTo(descriptionPosition.bottom, 24.dp)
+                        if (item.description.isNotEmpty()) {
+//                            if (tagNumber1.isEmpty() && tagNumber2.isEmpty() && tagNumber3.isEmpty())
+                            top.linkTo(descriptionPosition.bottom, 16.dp)
+//                            else
+//                                top.linkTo(descriptionPosition.bottom, 24.dp)
                         } else {
                             if (tagNumber1.isEmpty() && tagNumber2.isEmpty() && tagNumber3.isEmpty())
                                 top.linkTo(titlePosition.bottom, 32.dp)
@@ -286,7 +361,7 @@ fun TaskOrNote(
                     })
 
                 Text(
-                    text = "13/04/2023",
+                    text = "${item.dueDate?.get(0)}/${item.dueDate?.get(1)}/${item.dueDate?.get(2)}  |  ${item.dueDate?.get(3)}:${item.dueDate?.get(4)}",
                     style = MaterialTheme.typography.body2,
                     color = Color.White,
                     modifier = Modifier.constrainAs(dueDatePosition) {
@@ -295,137 +370,53 @@ fun TaskOrNote(
                         bottom.linkTo(dueDateTextPosition.bottom)
                     })
             }
-            Text(
-                text = if (itemIsTask) stringResource(R.string.creation_date_task) else stringResource(
-                    R.string.creation_date_note
-                ),
-                color = Color.White.copy(0.85F), style = MaterialTheme.typography.body2,
-                modifier = Modifier.constrainAs(creationDateTextPosition) {
-                    start.linkTo(titlePosition.start)
-                    if (taskType == context.getString(R.string.persistent)) {
-                        if (description.isNotEmpty()) {
-                            if (tagNumber1.isEmpty() && tagNumber2.isEmpty() && tagNumber3.isEmpty())
-                                top.linkTo(descriptionPosition.bottom, 32.dp)
-                            else
-                                top.linkTo(
-                                    descriptionPosition.bottom,
-                                    16.dp
-                                )
-                        } else
-                            if (tagNumber1.isEmpty() && tagNumber2.isEmpty() && tagNumber3.isEmpty())
-                                bottom.linkTo(parent.bottom, 12.dp)
-                            else
-                                top.linkTo(titlePosition.bottom, 16.dp)
 
-                    } else {
-
-                        if (itemIsTask) {
-                            if (tagNumber1.isEmpty() && tagNumber2.isEmpty() && tagNumber3.isEmpty())
-                                top.linkTo(dueDateTextPosition.bottom, 24.dp)
-                            else
-                                top.linkTo(
-                                    dueDateTextPosition.bottom,
-                                    16.dp
-                                )
-                        } else if (description.isNotEmpty()) {
-                            if (tagNumber1.isEmpty() && tagNumber2.isEmpty() && tagNumber3.isEmpty())
-                                top.linkTo(descriptionPosition.bottom, 24.dp)
-                            else
-                                top.linkTo(
-                                    descriptionPosition.bottom,
-                                    16.dp
-                                )
-                        } else
-
-                            if (tagNumber1.isEmpty() && tagNumber2.isEmpty() && tagNumber3.isEmpty())
-                                bottom.linkTo(parent.bottom, 12.dp)
-                            else
-
-                                top.linkTo(titlePosition.bottom, 16.dp)
-                    }
-
-                })
+            var columnLayoutWidth by remember { mutableStateOf(0.dp) }
 
 
-            Text(
-                text = "24/08/2003",
-                style = MaterialTheme.typography.body2,
-                color = Color.White.copy(0.90F),
-                modifier = Modifier.constrainAs(creationDatePosition) {
-                    start.linkTo(creationDateTextPosition.end, 10.dp)
-                    top.linkTo(creationDateTextPosition.top)
-                    bottom.linkTo(creationDateTextPosition.bottom)
-                }
-            )
+            val density = LocalDensity.current
 
             Column(
                 Modifier
                     .constrainAs(tagsPosition) {
                         start.linkTo(dividerPosition.start, 12.dp)
-                        end.linkTo(parent.end, 12.dp)
                         width = Dimension.fillToConstraints
-
-                        top.linkTo(creationDateTextPosition.bottom, 16.dp)
-                        if (description.length < 40)
+                        if (itemIsTask)
+                            if (item.dueDate != null)
+                                top.linkTo(dueDateTextPosition.bottom, 16.dp)
+                            else
+                                top.linkTo(descriptionPosition.bottom, 16.dp)
+                        else
+                            top.linkTo(descriptionPosition.bottom, 16.dp)
+                        if (item.description.length < 40)
                             bottom.linkTo(parent.bottom, 12.dp)
 
                     }
-                    .fillMaxWidth()
-                    .padding(vertical = 2.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .wrapContentWidth()
+                    .padding(vertical = 2.dp)
+                    .onGloballyPositioned {
+                        if (columnLayoutWidth == 0.dp)
+                            columnLayoutWidth = with(density) {
+                                it.size.width.toDp()
+                            }
+                        Log.i(
+                            TAG,
+                            "TaskOrNote: the column layout width is equal to : $columnLayoutWidth"
+                        )
+                    },
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalAlignment = Alignment.Start
             ) {
                 Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    Modifier
+                        .wrapContentWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.Start),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
 
-                    if (tagNumber1.isNotEmpty() && tagNumber1.length < 25) {
-                        tags[0]?.let {
-                            MyTag(
-                                it,
-                                Color.White,
-                                borderStroke = 1.dp
-                            ) {
-                                tagNumber--
-                                tagNumber1 = ""
-                                return@MyTag Unit
-                            }
-                        }
-                    }
-                    if (tagNumber2.isNotEmpty() && tagNumber2.length < 20) {
-                        tags[1]?.let {
-                            MyTag(
-                                it,
-                                Color.White,
-                                borderStroke = 1.dp
-                            ) {
-                                tagNumber--
-                                tagNumber2 = ""
-                                return@MyTag Unit
-                            }
-                        }
-                    }
-
-                    if (tagNumber3.isNotEmpty() && tagNumber3.length < 20) {
-                        tags[2]?.let {
-                            MyTag(
-                                it,
-                                Color.White,
-                                borderStroke = 1.dp
-                            ) {
-                                tagNumber--
-                                tagNumber3 = ""
-                                return@MyTag Unit
-                            }
-                        }
-                    }
-
-                }
-                if (tagNumber1.isNotEmpty() && tagNumber1.length >= 25) {
-                    tags[0]?.let {
+                    if (tagNumber1.isNotEmpty() && columnLayoutWidth < itemWidth - 20.dp) {
                         MyTag(
-                            it,
+                            tagNumber1,
                             Color.White,
                             borderStroke = 1.dp
                         ) {
@@ -434,13 +425,9 @@ fun TaskOrNote(
                             return@MyTag Unit
                         }
                     }
-
-                }
-
-                if (tagNumber2.length >= 20) {
-                    tags[1]?.let {
+                    if (tagNumber2.isNotEmpty() && columnLayoutWidth < itemWidth - 20.dp) {
                         MyTag(
-                            it,
+                            tagNumber2,
                             Color.White,
                             borderStroke = 1.dp
                         ) {
@@ -450,12 +437,9 @@ fun TaskOrNote(
                         }
                     }
 
-                }
-
-                if (tagNumber3.length >= 20) {
-                    tags[2]?.let {
+                    if (tagNumber3.isNotEmpty() && columnLayoutWidth < itemWidth - 20.dp) {
                         MyTag(
-                            it,
+                            tagNumber3,
                             Color.White,
                             borderStroke = 1.dp
                         ) {
@@ -463,6 +447,44 @@ fun TaskOrNote(
                             tagNumber3 = ""
                             return@MyTag Unit
                         }
+                    }
+
+                }
+                if (tagNumber1.isNotEmpty() && columnLayoutWidth > itemWidth - 20.dp) {
+                    MyTag(
+                        tagNumber1,
+                        Color.White,
+                        borderStroke = 1.dp
+                    ) {
+                        tagNumber--
+                        tagNumber1 = ""
+                        return@MyTag Unit
+                    }
+
+                }
+
+                if (columnLayoutWidth > itemWidth - 20.dp) {
+                    MyTag(
+                        tagNumber2,
+                        Color.White,
+                        borderStroke = 1.dp
+                    ) {
+                        tagNumber--
+                        tagNumber2 = ""
+                        return@MyTag Unit
+                    }
+
+                }
+
+                if (columnLayoutWidth > itemWidth - 20.dp) {
+                    MyTag(
+                        tagNumber3,
+                        Color.White,
+                        borderStroke = 1.dp
+                    ) {
+                        tagNumber--
+                        tagNumber3 = ""
+                        return@MyTag Unit
                     }
                 }
 
@@ -477,13 +499,14 @@ fun TaskOrNote(
 
 
 @Composable
-private fun LazyListState.isScrollingUp(): Boolean {
+private fun LazyListState.isNotScrollingUp(): Boolean {  // this piece of code might have some bugs in future
     val isScrollingToEnd by remember { derivedStateOf { layoutInfo.visibleItemsInfo.lastOrNull()?.index == layoutInfo.totalItemsCount - 1 } }
+    val previousLastItem by remember { mutableIntStateOf(layoutInfo.visibleItemsInfo.lastIndex) }
     var previousIndex by remember(this) { mutableIntStateOf(firstVisibleItemIndex) }
     var previousScrollOffset by remember(this) { mutableIntStateOf(firstVisibleItemScrollOffset) }
     return remember(this) {
         derivedStateOf {
-            if (isScrollingToEnd) {
+            if (isScrollingToEnd && previousLastItem == layoutInfo.visibleItemsInfo.lastIndex) {
                 return@derivedStateOf false
             }
             if (previousIndex != firstVisibleItemIndex) {
@@ -498,71 +521,144 @@ private fun LazyListState.isScrollingUp(): Boolean {
     }.value
 }
 
+
 @SuppressLint("SuspiciousIndentation")
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun ChipsSection() {
+fun ChipsSection(navController: NavController) {
     val context = LocalContext.current
+    var selectedChip by rememberSaveable { mutableStateOf("") }
     val chipsList = arrayOf(
+        context.getString(R.string.txt_main_tags),
         context.getString(R.string.txt_main_importance),
         context.getString(R.string.txt_main_date),
         context.getString(R.string.txt_main_ascending),
         context.getString(R.string.txt_main_descending)
     )
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(start = 32.dp, end = 32.dp, top = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            for (chipName in chipsList) {
-                Chip(
-                    onClick = { /*TODO*/ },
-                    colors = ChipDefaults.chipColors(backgroundColor = MaterialTheme.colors.surface),
-                    border = BorderStroke(1.dp, MaterialTheme.colors.onSurface)
-                ) {
-                    Text(text = chipName)
-                }
-            }
+    taskList.forEach { taskItem ->
+        taskItem.tagNumber1?.let { taskTag ->
+            if (tasksTagsList.none { tagItem -> tagItem.tagName == taskTag } && taskTag.isNotEmpty())
+                tasksTagsList.add(Tag(taskTag))
         }
 
+        taskItem.tagNumber2?.let { taskTag ->
+            if (tasksTagsList.none { tagItem -> tagItem.tagName == taskTag } && taskTag.isNotEmpty())
+                tasksTagsList.add(Tag(taskTag))
+        }
+
+        taskItem.tagNumber3?.let { taskTag ->
+            if (tasksTagsList.none { tagItem -> tagItem.tagName == taskTag } && taskTag.isNotEmpty())
+                tasksTagsList.add(Tag(taskTag))
+        }
+    }
+
+    noteList.forEach { noteItem ->
+        noteItem.tagNumber1?.let { noteTag ->
+            if (notesTagsList.none { tagItem -> tagItem.tagName == noteTag } && noteTag.isNotEmpty())
+                notesTagsList.add(Tag(noteTag))
+        }
+
+        noteItem.tagNumber2?.let { noteTag ->
+            if (notesTagsList.none { tagItem -> tagItem.tagName == noteTag } && noteTag.isNotEmpty())
+                notesTagsList.add(Tag(noteTag))
+        }
+
+        noteItem.tagNumber3?.let { noteTag ->
+            if (notesTagsList.none { tagItem -> tagItem.tagName == noteTag } && noteTag.isNotEmpty())
+                notesTagsList.add(Tag(noteTag))
+        }
+    }
+
+
+
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colors.surface)
+            .padding(top = 4.dp)
+    ) {
+
+
+        LazyRow(
+            Modifier
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+
+
+            items(chipsList, key = { it }, contentType = { String }) { item ->
+
+
+                val selectedItemAnimation by animateColorAsState(
+                    targetValue = if (selectedChip == item) MaterialTheme.colors.primary.copy(
+                        0.6f
+                    )
+                    else MaterialTheme.colors.onSurface.copy(
+                        0.1f
+                    ), label = "selectedItemAnimation"
+                )
+                Chip(
+                    onClick = {
+                        selectedChip = item
+                        if (selectedChip == context.getString(R.string.txt_main_tags))
+                            showTagsDialog = true
+                        else {
+                            if (currentPage == 0)
+                                tasksTagsList.filter { it.isChecked }
+                                    .forEach { it.isChecked = false }
+                            else
+                                notesTagsList.filter { it.isChecked }
+                                    .forEach { it.isChecked = false }
+                        }
+
+
+                    },
+                    border = BorderStroke(1.dp, MaterialTheme.colors.onSurface),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ChipDefaults.chipColors(backgroundColor = selectedItemAnimation),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                ) {
+                    Text(
+                        text = item,
+                        modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
+                    )
+                }
+            }
+
+
+        }
+        Divider(Modifier.fillMaxWidth(), color = MaterialTheme.colors.onSurface.copy(0.2f))
+    }
 
 
 }
 
+
 @Composable
-fun ItemsListSection(elements: List<Item>, itemsAreTasks: Boolean) {
+fun ItemsListSection(
+    navController: NavController,
+    elements: List<Item>,
+    itemsAreTasks: Boolean
+) {
+
     val lazyListState = rememberLazyListState()
-    var key = ""
-    isNotScrollingUp = lazyListState.isScrollingUp()
+
+    isNotScrollingUp = lazyListState.isNotScrollingUp()
     Column {
         LazyColumn(
             state = lazyListState,
-            contentPadding = PaddingValues(top = 105.dp),
+            contentPadding = PaddingValues(top = 56.dp, bottom = 60.dp),
 
             content = {
-                item { ChipsSection() }
-                items(elements, key = {
-                    key = it.title
-                    it.title
-                }, contentType = { it }) { item ->
+                item { ChipsSection(navController) }
 
-                    Log.i(TAG, "ItemsListSection: this method is called and key is $key")
+                items(elements, key = { it.title }, contentType = { it }) { item ->
                     if (itemsAreTasks)
-                        TaskOrNote(
-                            item.title,
-                            item.description,
-                            item.color,
-                            arrayOf(item.tagNumber1, item.tagNumber2, item.tagNumber3)
-                        ) // this one is task
+                        TaskOrNote(item = item) // this one is task
                     else
-                        TaskOrNote(
-                            item.title,
-                            item.description,
-                            Color.Blue,
-                            tags = arrayOf(item.tagNumber1, item.tagNumber2, item.tagNumber3),
-                            itemIsTask = false,
-                        ) // this one is note
+                        TaskOrNote(itemIsTask = false, item) // this one is note
 
 
                 }
@@ -576,67 +672,30 @@ fun ItemsListSection(elements: List<Item>, itemsAreTasks: Boolean) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun MyTabLayout(modifier: Modifier = Modifier, pagerState: PagerState) {
+fun MyViewPager(navController: NavController, pagerState: PagerState, modifier: Modifier) {
 
-    val coroutineScope = rememberCoroutineScope()
-
-    AnimatedVisibility(
-        visible = isNotScrollingUp && !selectBtnIsClicked,
-        enter = slideInVertically(),
-        exit = slideOutVertically() + fadeOut()
-    ) {
-        TabRow(selectedTabIndex = pagerState.currentPage,
-            backgroundColor = MaterialTheme.colors.surface,
-            modifier = modifier
-                .padding(bottom = 8.dp),
-            tabs = {
-                Tab(
-                    selected = pagerState.currentPage == 0,
-                    onClick = { coroutineScope.launch { pagerState.animateScrollToPage(0) } },
-                    text = {
-                        Text(
-                            text = stringResource(R.string.txt_main_tasks),
-                            style = MaterialTheme.typography.body1
-                        )
-                    })
-                Tab(
-                    selected = pagerState.currentPage == 1,
-                    onClick = { coroutineScope.launch { pagerState.animateScrollToPage(1) } },
-                    text = {
-                        Text(
-                            text = stringResource(R.string.txt_main_notes),
-                            style = MaterialTheme.typography.body1
-                        )
-                    })
-
-            })
-    }
-}
-
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun MyViewPager(pagerState: PagerState) {
-    HorizontalPager(state = pagerState) { position ->
+    HorizontalPager(state = pagerState, userScrollEnabled = false) { position ->
 
         when (position) {
-            0 -> Tasks()
-            1 -> Notes()
+            0 -> Tasks(navController)
+            1 -> Notes(navController)
         }
+
+
     }
 }
 
 
 @Composable
-fun Notes() {
-    ItemsListSection(elements = taskList, itemsAreTasks = false)
+fun Notes(navController: NavController) {
+    ItemsListSection(navController, elements = noteList, itemsAreTasks = false)
     Log.i(TAG, "Notes: ")
 }
 
 @Composable
-fun Tasks() {
+fun Tasks(navController: NavController) {
 
-    ItemsListSection(elements = taskList, itemsAreTasks = true)
+    ItemsListSection(navController, elements = taskList, itemsAreTasks = true)
     Log.i(TAG, "Tasks: ")
 }
 
@@ -706,89 +765,68 @@ fun MyTag(
 }
 
 @Composable
-fun MyTopAppbar(modifier: Modifier = Modifier, navigator: DestinationsNavigator) {
-    TopAppBar(
-        title = {
-            Text(
-                text = stringResource(id = R.string.app_name), fontFamily = pacifico,
-                color = MaterialTheme.colors.onSurface, style = MaterialTheme.typography.h5,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        actions = {
-            IconButton(onClick = { searchBtnIsClicked = true }) {
-                Icon(
-                    painter = painterResource(id = R.drawable.search_svgrepo_com__1_),
-                    contentDescription = "Search"
+fun MyTopAppbar(navController: NavController) {
+    Column {
+        TopAppBar(
+            elevation = 0.dp,
+            title = {
+                Text(
+                    text = stringResource(id = R.string.app_name), fontFamily = pacifico,
+                    color = MaterialTheme.colors.onSurface, style = MaterialTheme.typography.h5,
+                    fontWeight = FontWeight.Bold
                 )
-            }
-            IconButton(onClick = { selectBtnIsClicked = true }) {
-                Icon(
-                    painter = painterResource(id = R.drawable.list_svgrepo_com__1_),
-                    contentDescription = null
-                )
-            }
-            IconButton(onClick = { /*TODO*/ }) {
-                Icon(
-                    painter = painterResource(id = R.drawable.category_variety_random_shuffle_svgrepo_com),
-                    contentDescription = "category"
-                )
-            }
-            IconButton(onClick = { navigator.navigate(SettingsPageDestination) }) {
-                Icon(
-                    painter = painterResource(id = R.drawable.settings_svgrepo_com__2_),
-                    contentDescription = null
-                )
-            }
-            //TODO add sort section
+            },
+            actions = {
+                IconButton(onClick = { searchBtnIsClicked = true }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.search_lg),
+                        contentDescription = "Search"
+                    )
+                }
+                IconButton(onClick = { selectBtnIsClicked = true }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.check),
+                        contentDescription = null
+                    )
+                }
+                IconButton(onClick = { navController.navigate("settings_screen") }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.settings_02),
+                        contentDescription = null
+                    )
+                }
+                //TODO add sort section
 
-        },
-        elevation = 0.dp, backgroundColor = MaterialTheme.colors.surface
+            }, backgroundColor = MaterialTheme.colors.surface
 
-    )
+        )
+        Divider(Modifier.fillMaxWidth(), MaterialTheme.colors.onSurface.copy(0.2f))
+    }
 
 
 }
 
 @SuppressLint("UnusedContentLambdaTargetStateParameter")
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun MyFab(pagerState: PagerState, navigator: () -> Unit) {
+fun MyFab(navigator: () -> Unit) {
 
     AnimatedVisibility(
-        visible = isNotScrollingUp,
+        visible = isNotScrollingUp && !selectBtnIsClicked && !searchBtnIsClicked,
         enter = slideInVertically() + fadeIn(),
         exit = fadeOut() + slideOutVertically()
     ) {
-        AnimatedContent(targetState = pagerState.currentPage, label = "Test") {
-            ExtendedFloatingActionButton(
-                modifier = Modifier.shadow(
-                    spotColor = if (themeIsDark) Color.White else Color.Black,
-                    elevation = 7.dp,
-                    shape = RoundedCornerShape(30.dp)
-                ),
-                text = {
-                    Text(
-                        text = if (pagerState.currentPage == 0) stringResource(id = R.string.add_new_task) else stringResource(
-                            id = R.string.add_new_note
-                        ),
-                        style = MaterialTheme.typography.body1,
-                        fontWeight = FontWeight.Bold
-                    )
-
-
-                }, shape = RoundedCornerShape(30.dp),
-                onClick = { navigator() },
-                icon = {
-                    Icon(
-                        painter = painterResource(id = if (pagerState.currentPage == 0) R.drawable.round_add_task_24 else R.drawable.round_note_add_24),
-                        contentDescription = "add"
-                    )
-                },
-                backgroundColor = MaterialTheme.colors.onSurface,
-                contentColor = MaterialTheme.colors.surface
+        FloatingActionButton(
+            shape = CircleShape,
+            onClick = { navigator() },
+            backgroundColor = MaterialTheme.colors.primary,
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.plus),
+                contentDescription = "add",
+                tint = Color.White
             )
         }
+
 
     }
 
@@ -822,34 +860,125 @@ fun SortSectionDisplay() {
 }
 
 @OptIn(ExperimentalFoundationApi::class)
-@RootNavGraph(start = true)
-@Destination
 @Composable
-fun HomePage(navigator: DestinationsNavigator) {
+fun HomePage(navController: NavController) {
+    val coroutineScope = rememberCoroutineScope()
+
+    var taskIsSelected by rememberSaveable { mutableStateOf(true) }
     val pagerState = rememberPagerState(
         initialPage = 0,
         initialPageOffsetFraction = 0f
     ) { 2 }
-
-
-
+    currentPage = pagerState.currentPage
     Scaffold(
-        floatingActionButton = { MyFab(pagerState) { navigator.navigate(AddPageDestination(if (pagerState.currentPage == 0) 0 else 1)) } },
+        isFloatingActionButtonDocked = true,
+        floatingActionButton = {
+            MyFab {
+                if (currentPage == 0) navController.navigate("add_task_screen")
+                else navController.navigate("add_note_screen")
+            }
+        },
         floatingActionButtonPosition = FabPosition.Center,
+        bottomBar = {
+            AnimatedVisibility(
+                visible = isNotScrollingUp && !selectBtnIsClicked && !searchBtnIsClicked,
+                enter = slideInVertically() + fadeIn(),
+                exit = fadeOut() + slideOutVertically()
+            ) {
+
+                BottomAppBar(
+                    elevation = 0.dp,
+                    modifier = Modifier
+                        .padding(start = 24.dp, end = 24.dp, bottom = 0.dp)
+                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                    backgroundColor = Color.Transparent
+                ) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                            .background(if (themeIsDark) darkBottomBar else lightBottomBar)
+                    ) {
+                        BottomNavigationItem(
+                            selected = taskIsSelected,
+                            alwaysShowLabel = false,
+                            onClick = {
+                                coroutineScope.launch {
+                                    taskIsSelected = true
+                                    pagerState.animateScrollToPage(0)
+
+                                }
+                            },
+                            icon = {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.check_square_broken),
+                                    contentDescription = "tasks"
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = stringResource(id = R.string.txt_main_tasks),
+
+                                    )
+                            })
+                        Spacer(modifier = Modifier.width(80.dp))
+                        BottomNavigationItem(
+                            selected = !taskIsSelected, alwaysShowLabel = false,
+                            onClick = {
+                                coroutineScope.launch {
+                                    taskIsSelected = false
+                                    pagerState.animateScrollToPage(1)
+
+                                }
+                            },
+                            icon = {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.file_06),
+                                    contentDescription = "notes"
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = stringResource(id = R.string.txt_main_notes),
+
+                                    )
+                            })
+                    }
+
+                }
+
+
+            }
+
+        },
     ) { padding ->
 
 
-        Box(
+        ConstraintLayout(  // you will use ConstraintLayout for rootLayer
             Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colors.surface)
         ) {
-            MyViewPager(pagerState = pagerState)
+            val (selectBtnPosition, searchBtnPosition, topAppBarPosition, viewpagerPosition) = createRefs()
+
+            MyViewPager(navController, pagerState = pagerState,
+                Modifier
+                    .padding(top = 8.dp)
+                    .constrainAs(viewpagerPosition) {
+                        top.linkTo(topAppBarPosition.bottom)
+                        width = Dimension.matchParent
+                    })
 
             AnimatedVisibility(
                 visible = selectBtnIsClicked,
                 enter = slideInVertically(),
-                exit = slideOutVertically()
+                exit = slideOutVertically(),
+                modifier = Modifier.constrainAs(selectBtnPosition) {
+                    top.linkTo(parent.top)
+                    start.linkTo(parent.start)
+                    end.linkTo(parent.end)
+                    width = Dimension.fillToConstraints
+                }
             ) {
                 SelectMode()
             }
@@ -857,7 +986,12 @@ fun HomePage(navigator: DestinationsNavigator) {
             AnimatedVisibility(
                 visible = searchBtnIsClicked,
                 enter = slideInVertically(),
-                exit = slideOutVertically(), modifier = Modifier.align(Alignment.TopCenter)
+                exit = slideOutVertically(), modifier = Modifier.constrainAs(searchBtnPosition) {
+                    top.linkTo(parent.top)
+                    start.linkTo(parent.start)
+                    end.linkTo(parent.end)
+                    width = Dimension.fillToConstraints
+                }
             ) {
                 SearchTextField()
             }
@@ -865,13 +999,16 @@ fun HomePage(navigator: DestinationsNavigator) {
             AnimatedVisibility(
                 visible = showTopAppBar && isNotScrollingUp,
                 enter = slideInVertically(),
-                exit = slideOutVertically() + fadeOut()
+                exit = slideOutVertically() + fadeOut(),
+                modifier = Modifier.constrainAs(topAppBarPosition) {
+                    top.linkTo(parent.top)
+                    start.linkTo(parent.start)
+                    end.linkTo(parent.end)
+                    width = Dimension.fillToConstraints
+                }
             ) {
-                MyTopAppbar(navigator = navigator)
+                MyTopAppbar(navController)
             }
-            MyTabLayout(pagerState = pagerState, modifier = Modifier.padding(top = 56.dp))
-
-
         }
     }
 
@@ -888,7 +1025,7 @@ fun SearchTextField() {
                 .height(56.dp), trailingIcon = {
                 IconButton(onClick = { searchBtnIsClicked = false }) {
                     Icon(
-                        imageVector = Icons.Rounded.Close,
+                        painter = painterResource(id = R.drawable.x_close),
                         contentDescription = "close",
                         tint = Color.White
                     )
@@ -921,16 +1058,6 @@ fun SearchTextField() {
 
 }
 
-@Destination
-@Composable
-fun SettingsPage(navigator: DestinationsNavigator) {
-    SettingsP()
-    val context = LocalContext.current
-    BackHandler {
-        Toast.makeText(context, "back button is pressed", Toast.LENGTH_SHORT).show()
-        navigator.navigateUp()
-    }
-}
 
 @Composable
 fun SelectMode() {
@@ -942,58 +1069,71 @@ fun SelectMode() {
     ) {
 
         val (deleteIcon, selectAllIcon, closeIcon, markAsCheckedIcon, itemsSelectedText) = createRefs()
-
-        Text(
-            text = stringResource(R.string.txt_main_items_selected), color = Color.White,
-            style = MaterialTheme.typography.h6,
+        AnimatedContent(
+            targetState = selectedItems.size,
+            label = "selection animation",
             modifier = Modifier.constrainAs(itemsSelectedText) {
                 start.linkTo(parent.start, 8.dp)
                 top.linkTo(parent.top)
                 bottom.linkTo(parent.bottom)
-            })
+            }) {
+            Text(
+                text = if (it == 0) "0 ${stringResource(R.string.txt_main_items_selected)}" else "$it ${
+                    stringResource(
+                        R.string.txt_main_items_selected
+                    )
+                }",
+                color = Color.White,
+                style = MaterialTheme.typography.h6,
+            )
+        }
+
 
         IconButton(
-            onClick = { selectBtnIsClicked = false },
+            onClick = {
+                selectBtnIsClicked = false
+                selectedItems.clear()
+            },
             modifier = Modifier.constrainAs(closeIcon) {
-                end.linkTo(deleteIcon.start)
+                end.linkTo(selectAllIcon.start)
                 bottom.linkTo(parent.bottom)
                 top.linkTo(parent.top)
             }) {
             Icon(
-                imageVector = Icons.Rounded.Close,
+                painter = painterResource(id = R.drawable.x_close),
                 contentDescription = "check",
                 tint = Color.White
             )
         }
         IconButton(onClick = { /*TODO*/ }, modifier = Modifier.constrainAs(deleteIcon) {
-            end.linkTo(markAsCheckedIcon.start)
+            end.linkTo(parent.end)
             bottom.linkTo(parent.bottom)
             top.linkTo(parent.top)
         }) {
             Icon(
-                imageVector = Icons.Rounded.Delete,
+                painter = painterResource(id = R.drawable.trash_01),
                 contentDescription = "Delete",
                 tint = Color.White
             )
         }
 
         IconButton(onClick = { /*TODO*/ }, modifier = Modifier.constrainAs(selectAllIcon) {
-            end.linkTo(parent.end)
+            end.linkTo(markAsCheckedIcon.start)
             top.linkTo(parent.top)
             bottom.linkTo(parent.bottom)
         }) {
             Icon(
-                painter = painterResource(id = R.drawable.round_checklist_24),
+                painter = painterResource(id = R.drawable.list),
                 contentDescription = "mark as checked", tint = Color.White
             )
         }
         IconButton(onClick = { /*TODO*/ }, modifier = Modifier.constrainAs(markAsCheckedIcon) {
-            end.linkTo(selectAllIcon.start)
+            end.linkTo(deleteIcon.start)
             bottom.linkTo(parent.bottom)
             top.linkTo(parent.top)
         }) {
             Icon(
-                painter = painterResource(id = R.drawable.round_check_box_24),
+                painter = painterResource(id = R.drawable.check_square),
                 contentDescription = "check all", tint = Color.White
             )
         }
@@ -1002,46 +1142,11 @@ fun SelectMode() {
 
 }
 
-@RequiresApi(Build.VERSION_CODES.N)
-@Destination
-@Composable
-fun EditPage(navigator: DestinationsNavigator) {
-    AddNewItem(edit_or_add = 'E', navigator = navigator)
-}
 
-@RequiresApi(Build.VERSION_CODES.N)
-@Destination
+@Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun AddPage(navigator: DestinationsNavigator, pagerState: Int) {
-    val context = LocalContext.current
-    BackHandler {
-        txtShowDateAndTime = context.getString(R.string.due_date)
-        yearFromTextField = 0.toString()
-        monthFromTextField = 0.toString()
-        dayFromTextField = 0.toString()
-        hourFromTextField = 0.toString()
-        minuteFromTextField = 0.toString()
-        tagNumber = 0
-        tagNumber1 = ""
-        tagNumber2 = ""
-        tagNumber3 = ""
-        navigator.navigateUp()
-    }
-    AddNewItem(task_or_note = if (pagerState == 0) 'T' else 'N', navigator = navigator)
-}
-
-
-@Composable
-fun SettingsP() {
-    Surface(Modifier.fillMaxSize()) {
-        Text(text = "This is Settings Page")
-    }
-}
-
-@Preview
-@Composable
-fun SettingsPreview() {
-    SettingsP()
+fun HomePagePreview() {
+    HomePage(navController = rememberNavController())
 }
 
 @Preview(showBackground = true, showSystemUi = true)
@@ -1062,54 +1167,9 @@ fun SortSectionPreview() {
     SortSectionDisplay()
 }
 
-@Preview
-@Composable
-fun MyActionSectionPreview() {
-}
-
-@Preview
-@Composable
-fun ItemListSectionPreview() {
-
-    ItemsListSection(taskList, itemsAreTasks = true)
-}
 
 @Preview
 @Composable
 fun MyTagPreview() {
     MyTag("Daily", Color.Blue)
-}
-
-@Preview(locale = "fa")
-@Composable
-fun SingleTaskPreview() {
-    TaskOrNote(
-        title = "این اولین وظیفه ایه که من میخوام تو این برنامه تعریف کنم",
-        description = "شاید این متن بلند بتونه کمکم کنه که ایراد های برنامه رو پیدا کنم",
-        priorityColor = Color.Red
-    )
-}
-
-@Preview
-@Composable
-fun SingleNotePreview() {
-    TaskOrNote(
-        "این اولین یادداشتی هست که میخوام برای این برنامه بنویسم",
-        "شاید این متن ها به نظر عجیب و غیرمنطقی باشه ولی برای تست کردن ظاهر برنامه لازمه",
-        Color.Blue,
-        itemIsTask = false
-    )
-}
-
-
-@Preview(uiMode = UI_MODE_NIGHT_YES, showSystemUi = true)
-@Composable
-fun HomePagePreviewDark() {
-
-}
-
-@Preview(showSystemUi = true)
-@Composable
-fun HomePagePreviewLight() {
-
 }

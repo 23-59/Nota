@@ -10,11 +10,13 @@
     <string name="txt_main_notes">NOTES</string>
     <string name="txt_main_sort_as">Sort As : need a parameter</string>
     <string name="txt_main_search">Search…</string>
-    <string name="txt_main_items_selected">0 Items Selected</string>
+    <string name="txt_main_items_selected">Selected</string>
     <string name="txt_main_ascending">Ascending</string>
     <string name="txt_main_descending">Descending</string>
     <string name="txt_main_importance">importance</string>
+    <string name="txt_main_tags">Tags...</string>
     <string name="txt_main_date">Date</string>
+    <string name="repeat">Repeat</string>
     <string name="sort_as">Sort As :</string>
     <string name="add_new_task">Add Task</string>
     <string name="add_new_note">Add Note</string>
@@ -32,8 +34,6 @@
     <string name="medium">Medium</string>
     <string name="high">High</string>
     <string name="task_type">Task Type :</string>
-    <string name="temporary">Temporary</string>
-    <string name="persistent">Persistent</string>
     <string name="tags">Tags :</string>
     <string name="textfield_description">Description</string>
     <string name="textfield_description_optional">Description" "(optional)</string>
@@ -42,6 +42,7 @@
     <string name="task_due_date">Task Due Date :</string>
     <string name="due_time">Due Time :</string>
     <string name="due_date">"Due Date : "</string>
+    <string name="due_date_add_screen">"Due Date"</string>
     <string name="choose_date_and_time">Choose Date And Time</string>
     <string name="at">At</string>
     <string name="date">Date :</string>
@@ -66,6 +67,16 @@
     <string name="choose">Choose</string>
     <string name="up_to_three_tags">Up to three tags</string>
     <string name="tag_name">Tag Name</string>
+    <string name="note">Note</string>
+    <string name="task">Task</string>
+    <string name="have_reminder">Have Reminder</string>
+    <string name="has_reminder">Has Reminder</string>
+    <string name="daily">Daily</string>
+    <string name="weekly">Weekly</string>
+    <string name="monthly">Monthly</string>
+    <string name="yearly">Yearly</string>
+    <string name="settings">Settings</string>
+    <string name="filter_tags">Filter Tags</string>
 
 
 </resources>

@@ -1,20 +1,15 @@
 package com.A_23_59.hypernote
 
 
-import android.app.DatePickerDialog
+import android.annotation.SuppressLint
 import android.content.Context
-import android.os.Build
-import android.widget.DatePicker
 import androidx.activity.compose.BackHandler
-import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,6 +25,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.runtime.*
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,15 +37,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
-import com.A_23_59.hypernote.destinations.ChooseDateTimeDialogDestination
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.A_23_59.hypernote.ui.theme.*
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 
 
 var title by mutableStateOf("")
@@ -58,12 +53,11 @@ var description by mutableStateOf("")
 var blueIsSelected by mutableStateOf(true)
 var yellowIsSelected by mutableStateOf(false)
 var redIsSelected by mutableStateOf(false)
-var taskType by mutableStateOf("")
 var txtShowDateAndTime by mutableStateOf("")
 var tagNumber1 by mutableStateOf("مطالعه")
 var tagNumber2 by mutableStateOf("ورزش")
 var tagNumber3 by mutableStateOf("کارهای روزانه")
-var tagNumber by mutableStateOf(
+var tagNumber by mutableIntStateOf(
     if (tagNumber1.isNotEmpty() && tagNumber2.isNotEmpty() && tagNumber3.isNotEmpty())
         3
     else if (tagNumber1.isNotEmpty() && tagNumber2.isNotEmpty())
@@ -75,28 +69,37 @@ var tagNumber by mutableStateOf(
 )
 
 
-@RequiresApi(Build.VERSION_CODES.N)
+@SuppressLint("SuspiciousIndentation")
 @Composable
 fun AddNewItem(
-    task_or_note: Char = 'T',
     edit_or_add: Char = 'A',
-    navigator: DestinationsNavigator
+    navController: NavController,
+    currentPage: Int
 ) {
+
     val context = LocalContext.current
+    BackHandler {
+        txtShowDateAndTime = context.getString(R.string.due_date)
+        yearFromTextField = 0.toString()
+        monthFromTextField = 0.toString()
+        dayFromTextField = 0.toString()
+        hourFromTextField = 0.toString()
+        minuteFromTextField = 0.toString()
+        tagNumber = 0
+        tagNumber1 = ""
+        tagNumber2 = ""
+        tagNumber3 = ""
+        navController.popBackStack()
+    }
     txtShowDateAndTime = stringResource(id = R.string.due_date)
 
 
     val confirmButtonText =
-        if (task_or_note == 'T' && edit_or_add == 'A') stringResource(R.string.add_to_the_tasks)
-        else if (task_or_note == 'N' && edit_or_add == 'A') stringResource(R.string.add_to_the_notes)
-        else if (task_or_note == 'T' && edit_or_add == 'E') stringResource(R.string.edit_the_task)
-        else stringResource(R.string.edit_the_note)
+        if (currentPage == 0) stringResource(id = R.string.add_to_the_tasks) else stringResource(id = R.string.add_to_the_notes)
 
     val topAppBarText =
-        if (task_or_note == 'T' && edit_or_add == 'A') stringResource(R.string.adding_task)
-        else if (task_or_note == 'N' && edit_or_add == 'A') stringResource(R.string.adding_note)
-        else if (task_or_note == 'T' && edit_or_add == 'E') stringResource(R.string.editing_task)
-        else stringResource(R.string.editing_note)
+        if (currentPage == 0) stringResource(R.string.adding_task) else stringResource(R.string.adding_note)
+
 
     ConstraintLayout(
         Modifier
@@ -104,7 +107,7 @@ fun AddNewItem(
             .background(MaterialTheme.colors.surface)
             .verticalScroll(rememberScrollState())
     ) {
-        val (titlePosition, priorityPosition, lowerColumnPosition, descriptionPosition, persistentItemsPosition, priorityTextPosition, taskTypeTextPosition, taskTypePosition, topBarPosition, tagsTextPosition) = createRefs()
+        val (titlePosition, priorityPosition, lowerColumnPosition, descriptionPosition, priorityTextPosition, topBarPosition) = createRefs()
 
 
 
@@ -115,7 +118,7 @@ fun AddNewItem(
                 color = MaterialTheme.colors.primaryVariant
             )
         }, backgroundColor = MaterialTheme.colors.surface, elevation = 0.dp, navigationIcon = {
-            IconButton(onClick = { navigator.navigateUp() }) {
+            IconButton(onClick = { navController.popBackStack() }) {
                 Icon(
                     imageVector = if (selectedLocale == "en") Icons.Default.ArrowBack else Icons.Default.ArrowForward,
                     tint = MaterialTheme.colors.primaryVariant,
@@ -158,28 +161,19 @@ fun AddNewItem(
             ),
             onValueChange = { description = it },
             label = {
-                Text(
-                    text = if (task_or_note == 'T') stringResource(R.string.textfield_description_optional) else stringResource(
-                        id = R.string.textfield_description
-                    )
-                )
+                Text(text = stringResource(R.string.textfield_description_optional))
             },
             modifier = Modifier.constrainAs(descriptionPosition) {
                 start.linkTo(parent.start, 16.dp)
                 end.linkTo(parent.end, 16.dp)
                 width = Dimension.fillToConstraints
-                if (task_or_note == 'T')
-                    top.linkTo(titlePosition.bottom, 32.dp)
-                 else {
-                     top.linkTo(titlePosition.bottom,16.dp)
-                    bottom.linkTo(tagsTextPosition.top)
-                    height = Dimension.fillToConstraints
-                }
+                top.linkTo(titlePosition.bottom, 32.dp)
+
 
             })
 
 
-        if (task_or_note == 'T') {
+        if (currentPage == 0) {
             Text(
                 text = stringResource(R.string.level_of_importance),
                 style = MaterialTheme.typography.h6,
@@ -190,7 +184,6 @@ fun AddNewItem(
                     end.linkTo(parent.end, 16.dp)
                     width = Dimension.fillToConstraints
                 })
-
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(24.dp),
@@ -205,11 +198,10 @@ fun AddNewItem(
                 val redWeight by animateFloatAsState(targetValue = if (redIsSelected) 2f else 1f)
                 val yellowWeight by animateFloatAsState(targetValue = if (yellowIsSelected) 2f else 1f)
                 val blueWeight by animateFloatAsState(targetValue = if (blueIsSelected) 2f else 1f)
-                val redBorder by animateDpAsState(targetValue = if (redIsSelected) 4.dp else 1.dp)
-                val yellowBorder by animateDpAsState(targetValue = if (yellowIsSelected) 4.dp else 0.dp)
-                val blueBorder by animateDpAsState(targetValue = if (blueIsSelected) 4.dp else 0.dp)
-
-
+                val redBorder by animateDpAsState(targetValue = if (redIsSelected) 3.dp else 0.dp)
+                val yellowBorder by animateDpAsState(targetValue = if (yellowIsSelected) 3.dp else 0.dp)
+                val blueBorder by animateDpAsState(targetValue = if (blueIsSelected) 3.dp else 0.dp)
+                val interactionSource = remember { MutableInteractionSource() }
                 val blueSize by animateDpAsState(targetValue = if (blueIsSelected) 75.dp else 45.dp)
                 Box(
                     modifier = Modifier
@@ -231,7 +223,7 @@ fun AddNewItem(
                         .weight(blueWeight)
                         .clickable(
                             indication = null,
-                            interactionSource = MutableInteractionSource()
+                            interactionSource = interactionSource
                         ) {
                             blueIsSelected = true
                             yellowIsSelected = false
@@ -240,7 +232,7 @@ fun AddNewItem(
                 ) {
                     AnimatedContent(
                         targetState = blueIsSelected,
-                        modifier = Modifier.align(Alignment.Center)
+                        modifier = Modifier.align(Alignment.Center), label = ""
                     ) {
                         if (it)
                             Text(
@@ -283,7 +275,7 @@ fun AddNewItem(
                         .weight(yellowWeight)
                         .clickable(
                             indication = null,
-                            interactionSource = MutableInteractionSource()
+                            interactionSource = interactionSource
                         ) {
                             yellowIsSelected = true
                             redIsSelected = false
@@ -338,7 +330,7 @@ fun AddNewItem(
                         )
                         .clickable(
                             indication = null,
-                            interactionSource = MutableInteractionSource()
+                            interactionSource = interactionSource
                         ) {
                             redIsSelected = true
                             yellowIsSelected = false
@@ -370,191 +362,216 @@ fun AddNewItem(
                 }
             }
 
-
-
-            Text(
-                text = stringResource(R.string.task_type),
-                color = MaterialTheme.colors.onSurface,
-                style = MaterialTheme.typography.h6,
-                modifier = Modifier.constrainAs(taskTypeTextPosition) {
-                    top.linkTo(priorityTextPosition.bottom, 130.dp)
-                    start.linkTo(parent.start, 16.dp)
-                })
-            val options =
-                listOf(stringResource(R.string.temporary), stringResource(R.string.persistent))
-
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(24.dp),
-                modifier = Modifier.constrainAs(taskTypePosition) {
-                    width = Dimension.fillToConstraints
-                    start.linkTo(taskTypeTextPosition.start)
-                    end.linkTo(parent.end, 16.dp)
-                    top.linkTo(taskTypeTextPosition.bottom, 24.dp)
-                }) {
-                options.forEach { option ->
-
-                    val backgroundColor: Color by animateColorAsState(targetValue = if (taskType == option) MaterialTheme.colors.primary else Color.Gray)
-                    val contentColor: Color by animateColorAsState(
-                        targetValue = if (taskType == option) Color.White else Color(
-                            0xFFE6E6E6
-                        )
-                    )
-                    var selectedDay by remember{mutableStateOf("")}
-
-
-                    Button(
-                        onClick = {
-                            taskType = option
-                            if (option == context.getString(R.string.persistent)) {
-                                resetTemporary(context)
-                            }
-                        }, modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            backgroundColor = backgroundColor,
-                            contentColor = MaterialTheme.colors.onSurface
-                        )
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = option,
-                                fontSize = 17.sp,
-                                color = contentColor
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Icon(
-                                painter = painterResource(id = if (option == stringResource(id = R.string.persistent)) R.drawable.round_autorenew_24 else R.drawable.round_timelapse_30),
-                                contentDescription = "task type",
-                                tint = contentColor
-                            )
-
-                        }
-                    }
-                }
-            }
-
-
             Column(
                 Modifier
                     .constrainAs(lowerColumnPosition) {
-                        start.linkTo(taskTypePosition.start)
-                        end.linkTo(taskTypePosition.end)
-                        top.linkTo(taskTypePosition.bottom, 16.dp)
+                        start.linkTo(priorityPosition.start)
+                        end.linkTo(priorityPosition.end)
+                        top.linkTo(priorityTextPosition.bottom, 135.dp)
                         bottom.linkTo(parent.bottom)
                         width = Dimension.fillToConstraints
-
-
                     }
                     .fillMaxWidth(), horizontalAlignment = Alignment.Start)
             {
+                var dueDateButtonIsSelected by remember { mutableStateOf(false) }
+                val taskOptions =
+                    listOf(
+                        context.getString(R.string.repeat),
+                        context.getString(R.string.due_date_add_screen)
+                    )
 
-                    Column(Modifier.padding(vertical = 16.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(32.dp),
+                    modifier = Modifier.padding(bottom = 32.dp)
+                ) {
+                    var repeatButtonSelected by remember { mutableStateOf(false) }
 
-                        Text(
-                            text = txtShowDateAndTime,
-                            style = MaterialTheme.typography.h6,
-                            fontFamily = if (selectedLocale == "fa-ir") iranYekanFarsiNamerals else iranYekan,
-                            color = MaterialTheme.colors.onSurface,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        OutlinedButton(
-                            onClick = { navigator.navigate(ChooseDateTimeDialogDestination) },
+                    val repeatIsSelectedColor by animateColorAsState(  //TODO   WE WANT TO TURN THIS BUTTON ON ONLY WHEN REPEAT DATE HAS BEEN SET , AND THEN TURN IT OFF
+                        targetValue = if (selectedRepeatTaskOption.isNotEmpty()) MaterialTheme.colors.primary else MaterialTheme.colors.onSurface.copy(
+                            0.6f
+                        ),
+                        label = "repeatColorIsSelected"
+                    )
+                    val dueDateIsSelectedColor by animateColorAsState(
+                        targetValue = if (dueDateHasBeenSet || selectedRepeatTaskOption.isNotEmpty()) MaterialTheme.colors.primary else MaterialTheme.colors.onSurface.copy(
+                            0.6f
+                        ),
+                        label = "dueDateColorIsSelected"
+                    )
+                    taskOptions.forEach {
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
-                                .align(Alignment.CenterHorizontally)
+                                .weight(1f)
+                                .border(
+                                    width = 1.5.dp,
+                                    if (it == context.getString(R.string.repeat)) repeatIsSelectedColor else dueDateIsSelectedColor,
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .clip(
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .clickable(
+                                    indication = null,
+                                    interactionSource = MutableInteractionSource()
+                                ) {
+                                    if (it == context.getString(R.string.repeat)) {
+                                        if (selectedRepeatTaskOption.isNotEmpty()) {
+                                            selectedRepeatTaskOption = ""
+                                            repeatButtonSelected = false
+                                        } else {
+                                            showRepeatDialog = true
+                                            repeatButtonSelected = true
+
+
+                                        }
+
+                                    } else {
+
+                                        if (dueDateHasBeenSet && !repeatButtonSelected) {
+                                            dueDateHasBeenSet = false
+                                            txtShowDateAndTime = ""
+                                        } else {
+                                            showDateAndTimeDialog = true
+                                            dueDateButtonIsSelected = true
+                                        }
+
+                                    }
+
+                                }
+                                .padding(vertical = 8.dp)
                         ) {
-                            Text(
-                                text = stringResource(R.string.choose_date_and_time),
-                                style = MaterialTheme.typography.body1,
-                                color = MaterialTheme.colors.primaryVariant,
-                                fontWeight = FontWeight.Bold
+                            Icon(
+                                painter = painterResource(
+                                    id = if (it == context.getString(R.string.repeat))
+                                        R.drawable.clock_refresh
+                                    else
+                                        R.drawable.calendar
+                                ),
+                                contentDescription = "repeat",
+                                tint = if (it == context.getString(R.string.repeat)) repeatIsSelectedColor else dueDateIsSelectedColor
                             )
+                            if (it == context.getString(R.string.due_date_add_screen)) {
+                                AnimatedContent(
+                                    targetState = dueDateHasBeenSet,
+                                    label = "dueDateAnimation"
+                                ) { dueDateHasBeenSet ->
+                                    Text(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        textAlign = TextAlign.Center,
+                                        text = if (dueDateHasBeenSet) {
+                                            if (reminderIsChecked)
+                                                "$txtShowDateAndTime \n ${stringResource(R.string.has_reminder)}"
+                                            else
+                                                txtShowDateAndTime
+                                        } else
+                                            context.getString(
+                                                R.string.due_date_add_screen
+                                            ),
+                                        color = if (it == context.getString(R.string.repeat)) repeatIsSelectedColor else dueDateIsSelectedColor
+                                    )
+                                }
+                            } else
+                                AnimatedContent(targetState = selectedRepeatTaskOption.isNotEmpty(),
+                                    label = "repeatAnimation"
+                                ) { dueDateIsSet ->
+                                    Text(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        textAlign = TextAlign.Center,
+                                        text = if (dueDateIsSet) selectedRepeatTaskOption else context.getString(R.string.repeat),
+                                        color = if (it == context.getString(R.string.repeat)) repeatIsSelectedColor else dueDateIsSelectedColor
+                                    )
+                                }
+
+
                         }
-
-
                     }
-
-                if (taskType == context.getString(R.string.temporary)) {
-                    Text(
-                        text = stringResource(R.string.tags),
-                        color = MaterialTheme.colors.onSurface,
-                        style = MaterialTheme.typography.h6
-                    )
-                } else {
-                    Text(
-                        text = stringResource(R.string.tags),
-                        color = MaterialTheme.colors.onSurface,
-                        style = MaterialTheme.typography.h6
-                    )
-
                 }
+
+
+
+                Text(
+                    text = stringResource(R.string.tags),
+                    color = MaterialTheme.colors.onSurface,
+                    style = MaterialTheme.typography.h6
+                )
+
                 Text(
                     text = stringResource(R.string.up_to_three_tags),
                     color = Gold200,
                     style = MaterialTheme.typography.body2,
-                    modifier = Modifier.padding(top = 12.dp, bottom = 16.dp)
+                    modifier = Modifier.padding(top = 12.dp)
                 )
 
                 var tagValue by remember { mutableStateOf("") }
 
                 var tagError by remember { mutableStateOf(false) }
 
-                OutlinedTextField(
-                    value = tagValue, enabled = tagNumber != 3,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    onValueChange = {
+                var characterLimit by remember { mutableStateOf<Byte>(0) }
 
-                        if (!it.startsWith(" ")) {
-                            tagValue = it
-                            tagError = false
-                        }
+                Column(Modifier.fillMaxWidth()) {
+                    AnimatedContent(
+                        targetState = characterLimit,
+                        label = "characterLimit",
+                        modifier = Modifier
+                            .align(AbsoluteAlignment.Left)
+                            .padding(end = 4.dp, bottom = 4.dp)
+                    ) {
+                        Text(text = "$it / 25", color = MaterialTheme.colors.onSurface.copy(0.5f))
+                    }
+                    OutlinedTextField(
+                        value = tagValue, enabled = tagNumber != 3,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        onValueChange = {
+
+                            if (!it.startsWith(" ") && it.length <= 25) {
+                                characterLimit = it.length.toByte()
+                                tagValue = it
+                                tagError = false
+                            } else tagError = true
 
 
-//                        if (it.length < 30) { this code snippet make TextField's color blinking when length is more than 30
-//                            tagError = false
-//                            tagValue = it
-//                        } else tagError = true
-                    }, isError = tagError,
-                    trailingIcon = {
-                        IconButton(enabled = tagNumber != 3 && tagValue.isNotBlank(),
-                            onClick = {
+                        }, isError = tagError,
+                        trailingIcon = {
+                            IconButton(enabled = tagNumber != 3 && tagValue.isNotBlank() && !tagError,
+                                onClick = {
 
-
-                                if (tagValue.isNotBlank())
                                     tagNumber++
-                                else tagError = true
 
-                                when (tagNumber) {
-                                    1 -> if (tagValue.isNotEmpty()) tagNumber1 = tagValue
-                                    2 -> if (tagValue.isNotEmpty()) tagNumber2 = tagValue
-                                    3 -> if (tagValue.isNotEmpty()) tagNumber3 = tagValue
-                                }
-                                tagValue = ""
+                                    when (tagNumber) {
+                                        1 -> if (tagValue.isNotEmpty()) tagNumber1 = tagValue
+                                        2 -> if (tagValue.isNotEmpty()) tagNumber2 = tagValue
+                                        3 -> if (tagValue.isNotEmpty()) tagNumber3 = tagValue
+                                    }
+                                    tagValue = ""
+                                    characterLimit = 0
 
-                            }) {
-                            Icon(
-                                imageVector = Icons.Rounded.Add,
-                                contentDescription = "",
-                                tint = MaterialTheme.colors.onSurface
+                                }) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Add,
+                                    contentDescription = "",
+                                    tint = MaterialTheme.colors.onSurface
+                                )
+                            }
+                        },
+                        placeholder = { Text(text = stringResource(R.string.tag_name)) },
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            textColor = MaterialTheme.colors.onSurface,
+                            backgroundColor = if (themeIsDark) elevatedSurface else Color.Black.copy(
+                                0.12f
                             )
-                        }
-                    },
-                    placeholder = { Text(text = stringResource(R.string.tag_name)) },
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        textColor = MaterialTheme.colors.onSurface,
-                        backgroundColor = if (themeIsDark) elevatedSurface else Color.Black.copy(
-                            0.12f
-                        )
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = if (tagNumber1.isEmpty()) 24.dp else 0.dp)
-                )
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = if (tagNumber1.isEmpty()) 24.dp else 0.dp)
+                    )
+
+
+                }
+
+
                 AnimatedVisibility(visible = tagNumber1.isNotEmpty() || tagNumber2.isNotEmpty() || tagNumber3.isNotEmpty()) {
                     Column(
                         Modifier
@@ -684,94 +701,94 @@ fun AddNewItem(
                 }
             }
         } else {
-
-            Text(
-                text = stringResource(R.string.tags),
-                color = MaterialTheme.colors.onSurface,
-                style = MaterialTheme.typography.h6,
-                modifier = Modifier.constrainAs(tagsTextPosition) {
-                    top.linkTo(descriptionPosition.bottom,16.dp)
-                    start.linkTo(descriptionPosition.start)
-
-
-                })
-            Column(
-                Modifier
-                    .constrainAs(lowerColumnPosition) {
-                        start.linkTo(tagsTextPosition.start)
-                        end.linkTo(descriptionPosition.end)
-                        top.linkTo(tagsTextPosition.bottom, 12.dp)
-                        bottom.linkTo(parent.bottom)
-                        width = Dimension.fillToConstraints
-
-
-                    }
-                    .fillMaxWidth(), horizontalAlignment = Alignment.Start)
-            {
-
+            Column(Modifier.constrainAs(lowerColumnPosition) {
+                start.linkTo(descriptionPosition.start)
+                end.linkTo(descriptionPosition.end)
+                top.linkTo(descriptionPosition.bottom, 16.dp)
+                bottom.linkTo(parent.bottom)
+                width = Dimension.fillToConstraints
+                height = Dimension.fillToConstraints
+            }) {
+                Text(
+                    text = stringResource(R.string.tags),
+                    color = MaterialTheme.colors.onSurface,
+                    style = MaterialTheme.typography.h6, modifier = Modifier.padding(top = 8.dp)
+                )
 
                 Text(
                     text = stringResource(R.string.up_to_three_tags),
                     color = Gold200,
                     style = MaterialTheme.typography.body2,
-                    modifier = Modifier.padding( bottom = 16.dp)
+                    modifier = Modifier.padding(top = 12.dp)
                 )
 
                 var tagValue by remember { mutableStateOf("") }
 
                 var tagError by remember { mutableStateOf(false) }
 
-                OutlinedTextField(
-                    value = tagValue, enabled = tagNumber != 3,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    onValueChange = {
+                var characterLimit by remember { mutableStateOf<Byte>(0) }
 
-                        if (!it.startsWith(" ")) {
-                            tagValue = it
-                            tagError = false
-                        }
+                Column(Modifier.fillMaxWidth()) {
+                    AnimatedContent(
+                        targetState = characterLimit,
+                        label = "characterLimit",
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(end = 4.dp, bottom = 4.dp)
+                    ) {
+                        Text(text = "$it / 25", color = MaterialTheme.colors.onSurface.copy(0.5f))
+                    }
+                    OutlinedTextField(
+                        value = tagValue, enabled = tagNumber != 3,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        onValueChange = {
+
+                            if (!it.startsWith(" ") && it.length <= 25) {
+                                characterLimit = it.length.toByte()
+                                tagValue = it
+                                tagError = false
+                            } else tagError = true
 
 
-//                        if (it.length < 30) { this code snippet make TextField's color blinking when length is more than 30
-//                            tagError = false
-//                            tagValue = it
-//                        } else tagError = true
-                    }, isError = tagError,
-                    trailingIcon = {
-                        IconButton(enabled = tagNumber != 3 && tagValue.isNotBlank(),
-                            onClick = {
+                        }, isError = tagError,
+                        trailingIcon = {
+                            IconButton(enabled = tagNumber != 3 && tagValue.isNotBlank() && !tagError,
+                                onClick = {
 
-
-                                if (tagValue.isNotBlank())
                                     tagNumber++
-                                else tagError = true
 
-                                when (tagNumber) {
-                                    1 -> if (tagValue.isNotEmpty()) tagNumber1 = tagValue
-                                    2 -> if (tagValue.isNotEmpty()) tagNumber2 = tagValue
-                                    3 -> if (tagValue.isNotEmpty()) tagNumber3 = tagValue
-                                }
-                                tagValue = ""
+                                    when (tagNumber) {
+                                        1 -> if (tagValue.isNotEmpty()) tagNumber1 = tagValue
+                                        2 -> if (tagValue.isNotEmpty()) tagNumber2 = tagValue
+                                        3 -> if (tagValue.isNotEmpty()) tagNumber3 = tagValue
+                                    }
+                                    tagValue = ""
+                                    characterLimit = 0
 
-                            }) {
-                            Icon(
-                                imageVector = Icons.Rounded.Add,
-                                contentDescription = "",
-                                tint = MaterialTheme.colors.onSurface
+                                }) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Add,
+                                    contentDescription = "",
+                                    tint = MaterialTheme.colors.onSurface
+                                )
+                            }
+                        },
+                        placeholder = { Text(text = stringResource(R.string.tag_name)) },
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            textColor = MaterialTheme.colors.onSurface,
+                            backgroundColor = if (themeIsDark) elevatedSurface else Color.Black.copy(
+                                0.12f
                             )
-                        }
-                    },
-                    placeholder = { Text(text = stringResource(R.string.tag_name)) },
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        textColor = MaterialTheme.colors.onSurface,
-                        backgroundColor = if (themeIsDark) elevatedSurface else Color.Black.copy(
-                            0.12f
-                        )
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = if (tagNumber1.isEmpty()) 24.dp else 0.dp)
-                )
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = if (tagNumber1.isEmpty()) 24.dp else 0.dp)
+                    )
+
+
+                }
+
+
                 AnimatedVisibility(visible = tagNumber1.isNotEmpty() || tagNumber2.isNotEmpty() || tagNumber3.isNotEmpty()) {
                     Column(
                         Modifier
@@ -900,10 +917,12 @@ fun AddNewItem(
                     )
                 }
             }
-
         }
+
+
     }
 }
+
 /**
  * this function will reset all the values in the Temporary section
  * to their default values when Persistent Button is clicked
@@ -921,5 +940,11 @@ fun resetTemporary(context: Context) {
     todayIsSelected = false
     tomorrowIsSelected = false
     afterTomorrowIsSelected = false
+
 }
 
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun AddItemScreenPreview() {
+AddNewItem(navController = rememberNavController(), currentPage = 0)
+}

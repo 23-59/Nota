@@ -30,7 +30,7 @@ private val LightColorPalette = lightColors(
 )
 
 @Composable
-fun HyperNoteTheme(darkTheme: Boolean, content: @Composable () -> Unit) {
+fun NotaTheme(darkTheme: Boolean, content: @Composable () -> Unit) {
     val colors = if (darkTheme)
         DarkColorPalette
     else

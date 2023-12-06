@@ -21,28 +21,29 @@ import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ChainStyle
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
-import com.A_23_59.hypernote.ui.theme.HyperNoteTheme
+import androidx.navigation.NavController
+import com.A_23_59.hypernote.ui.theme.NotaTheme
 import com.A_23_59.hypernote.ui.theme.iranYekan
 import com.A_23_59.hypernote.ui.theme.pacifico
-import kotlinx.coroutines.Dispatchers.IO
 
 var persianBorder by mutableStateOf(3.dp)
 var englishBorder by mutableStateOf(0.dp)
 var lightTheme by mutableStateOf(0.dp)
 var darkTheme by mutableStateOf(3.dp)
 var themeIsDark by mutableStateOf(true)
+var settingsIsSet  = false
 
  const val TAG = "TAGS"
 
 @Composable
-fun WelcomeScreen() {
+fun WelcomeScreen(navController: NavController) {
 
     Log.i(TAG, "CHANGING LANGUAGE TO $selectedLocale")
     Log.i(TAG, "SHOW WELCOME SCREEN TO $showWelcomeScreen")
     Log.i(TAG, "CHANGING THEME $themeIsDark")
 
 
-    HyperNoteTheme(darkTheme = themeIsDark) {
+    NotaTheme(darkTheme = themeIsDark) {
         Surface(modifier = Modifier.fillMaxSize()) {
             ConstraintLayout(Modifier.fillMaxSize()) {
 
@@ -228,7 +229,12 @@ fun WelcomeScreen() {
                 )
 
                 Button(
-                    onClick = { showWelcomeScreen = false },
+                    onClick = {
+//                        showWelcomeScreen = false
+                              navController.navigate("main_screen"){
+                                  navController.popBackStack()
+                              }
+                              },
                     modifier = Modifier
                         .shadow(
                             spotColor = MaterialTheme.colors.primary,
