@@ -3,10 +3,8 @@
 
     <style name="Theme.HyperNote.MySplash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">#212121</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/hyper_note_splash</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_round</item>
         <item name="postSplashScreenTheme">@style/Theme.HyperNote</item>
-
-
     </style>
 
 </resources>

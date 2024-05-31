@@ -14,7 +14,9 @@
     <string name="txt_main_ascending">صعودی</string>
     <string name="txt_main_descending">نزولی</string>
     <string name="txt_main_importance">اولویت</string>
-    <string name="txt_main_tags">برچسب ها...</string>
+    <string name="txt_completed_tasks">انجام شده ها</string>
+    <string name="txt_undone">ناتمام ها</string>
+    <string name="txt_main_tags">برچسب ها…</string>
     <string name="txt_main_date"> زمان انجام</string>
     <string name="sort_as">مرتب کردن بر اساس :</string>
     <string name="add_new_task">افزودن کار</string>
@@ -77,5 +79,7 @@
     <string name="yearly">سالانه</string>
     <string name="settings">تنظیمات</string>
     <string name="filter_tags">فیلتر کردن برچسب ها</string>
+    <string name="task_list_is_empty">لیست کارها خالی است !</string>
+    <string name="note_list_is_empty">لیست یادداشت ها خالی است !</string>
 
 </resources>
