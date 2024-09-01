@@ -1,0 +1,2935 @@
+Index: app/src/main/java/com/A_23_59/hypernote/presentation/WelcomeScreen.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/presentation/WelcomeScreen.kt b/app/src/main/java/com/golden_minute/nota/presentation/WelcomeScreen.kt
+rename from app/src/main/java/com/A_23_59/hypernote/presentation/WelcomeScreen.kt
+rename to app/src/main/java/com/golden_minute/nota/presentation/WelcomeScreen.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/presentation/WelcomeScreen.kt	
++++ b/app/src/main/java/com/golden_minute/nota/presentation/WelcomeScreen.kt	
+@@ -1,12 +1,28 @@
+-package com.A_23_59.hypernote.presentation
++package com.golden_minute.nota.presentation
+ 
+-import android.util.Log
+-import androidx.compose.foundation.*
++import androidx.compose.foundation.BorderStroke
++import androidx.compose.foundation.Image
++import androidx.compose.foundation.clickable
+ import androidx.compose.foundation.interaction.MutableInteractionSource
+-import androidx.compose.foundation.layout.*
++import androidx.compose.foundation.layout.Box
++import androidx.compose.foundation.layout.fillMaxSize
++import androidx.compose.foundation.layout.size
++import androidx.compose.foundation.rememberScrollState
+ import androidx.compose.foundation.shape.RoundedCornerShape
+-import androidx.compose.material.*
+-import androidx.compose.runtime.*
++import androidx.compose.foundation.verticalScroll
++import androidx.compose.material.Button
++import androidx.compose.material.ButtonDefaults
++import androidx.compose.material.Card
++import androidx.compose.material.MaterialTheme
++import androidx.compose.material.Surface
++import androidx.compose.material.Text
++import androidx.compose.runtime.Composable
++import androidx.compose.runtime.getValue
++import androidx.compose.runtime.mutableStateOf
++import androidx.compose.runtime.remember
++import androidx.compose.runtime.rememberCoroutineScope
++import androidx.compose.runtime.saveable.rememberSaveable
++import androidx.compose.runtime.setValue
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.draw.clip
+@@ -15,47 +31,56 @@
+ import androidx.compose.ui.res.stringResource
+ import androidx.compose.ui.text.font.FontWeight
+ import androidx.compose.ui.text.style.TextAlign
+-import androidx.compose.ui.tooling.preview.Preview
+ import androidx.compose.ui.unit.dp
++import androidx.compose.ui.unit.sp
+ import androidx.constraintlayout.compose.ChainStyle
+ import androidx.constraintlayout.compose.ConstraintLayout
+ import androidx.constraintlayout.compose.Dimension
++import androidx.hilt.navigation.compose.hiltViewModel
+ import androidx.navigation.NavController
+-import com.A_23_59.hypernote.R
+-import com.A_23_59.hypernote.ui.theme.NotaTheme
+-import com.A_23_59.hypernote.ui.theme.iranYekan
+-import com.A_23_59.hypernote.ui.theme.pacifico
++import com.golden_minute.nota.R
++import com.golden_minute.nota.data.data_source.SettingsDataStore
++import com.golden_minute.nota.ui.theme.NotaTheme
++import com.golden_minute.nota.ui.theme.iranYekan
++import com.golden_minute.nota.ui.theme.pacifico
++import kotlinx.coroutines.launch
+ 
+ var persianBorder by mutableStateOf(3.dp)
+ var englishBorder by mutableStateOf(0.dp)
+ var lightTheme by mutableStateOf(0.dp)
+ var darkTheme by mutableStateOf(3.dp)
+-var themeIsDark by mutableStateOf(true)
+-var settingsIsSet  = false
++
+ 
+  const val TAG = "TAGS"
+ 
+ @Composable
+-fun WelcomeScreen(navController: NavController) {
++fun WelcomeScreen(navController: NavController,settingsDataStore: SettingsDataStore,activityViewModel: MainActivityViewModel = hiltViewModel()) {
++
++    val coroutineScope = rememberCoroutineScope()
+ 
+-    Log.i(TAG, "CHANGING LANGUAGE TO $selectedLocale")
+-    Log.i(TAG, "SHOW WELCOME SCREEN TO $showWelcomeScreen")
+-    Log.i(TAG, "CHANGING THEME $themeIsDark")
++    var locale by rememberSaveable {
++        mutableStateOf(activityViewModel.languageData.value)
++    }
++
++    var themeIsDark by rememberSaveable {
++        mutableStateOf(activityViewModel.themeData.value)
++    }
+ 
+ 
+     NotaTheme(darkTheme = themeIsDark) {
++
+         Surface(modifier = Modifier
+             .fillMaxSize()
+             .verticalScroll(rememberScrollState())) {
+             ConstraintLayout(Modifier.fillMaxSize()) {
+ 
+-                val (txtTitlePosition, txtChooseLanguagePosition,
++                val (txtTitlePosition,txtDescriptionPosition, txtChooseLanguagePosition,
+                     persianPosition, confirmButtonPosition,
+                     englishPosition, txtChooseThemePosition, darkThemePosition,
+                     lightThemePosition, appLogoPosition) = createRefs()
+ 
+                 Image(
+-                    painter = painterResource(id = R.drawable.nota_pic_ic),
++                    painter = painterResource(id = R.drawable.nota),
+                     contentDescription = null,
+                     modifier = Modifier
+                         .size(120.dp)
+@@ -70,21 +95,34 @@
+                     text = stringResource(R.string.txt_welcome),
+                     color = MaterialTheme.colors.onSurface,
+                     fontWeight = FontWeight.Bold,
++                    lineHeight = 50.sp,
+                     textAlign = TextAlign.Center,
+-                    style = MaterialTheme.typography.h4, fontFamily = if (selectedLocale =="fa-ir") iranYekan else pacifico,
++                    style = MaterialTheme.typography.h4, fontFamily = if (locale =="fa-ir") iranYekan else pacifico,
+                     modifier = Modifier.constrainAs(txtTitlePosition) {
+                         width = Dimension.fillToConstraints
+                         top.linkTo(appLogoPosition.bottom, 24.dp)
+                         start.linkTo(parent.start)
+                         end.linkTo(parent.end)
+                     })
++                Text(
++                    text = stringResource(R.string.txt_welcome_description),
++                    color = MaterialTheme.colors.onSurface,
++                    textAlign = TextAlign.Center,
++                    lineHeight = 30.sp,
++                    style = MaterialTheme.typography.h6, fontFamily = iranYekan,
++                    modifier = Modifier.constrainAs(txtDescriptionPosition) {
++                        width = Dimension.fillToConstraints
++                        top.linkTo(txtTitlePosition.bottom, 24.dp)
++                        start.linkTo(parent.start,16.dp)
++                        end.linkTo(parent.end,16.dp)
++                    })
+                 Text(
+                     text = stringResource(R.string.txt_language),
+                     style = MaterialTheme.typography.h6,
+                     fontWeight = FontWeight.Bold,
+                     modifier = Modifier.constrainAs(txtChooseLanguagePosition) {
+                         width = Dimension.fillToConstraints
+-                        top.linkTo(txtTitlePosition.bottom, 32.dp)
++                        top.linkTo(txtDescriptionPosition.bottom, 32.dp)
+                         start.linkTo(parent.start, 16.dp)
+                         end.linkTo(parent.end, 16.dp)
+ 
+@@ -96,7 +134,10 @@
+                             interactionSource = remember { MutableInteractionSource() }) {
+                             persianBorder = 0.dp
+                             englishBorder = 3.dp
+-                            selectedLocale = "en"
++                            locale = "en"
++                            coroutineScope.launch {
++                                settingsDataStore.saveLanguage(locale)
++                            }
+                         }
+                         .constrainAs(englishPosition) {
+                             height = Dimension.value(80.dp)
+@@ -124,7 +165,10 @@
+                             interactionSource = remember { MutableInteractionSource() }) {
+                             englishBorder = 0.dp
+                             persianBorder = 3.dp
+-                            selectedLocale = "fa-ir"
++                            locale = "fa-ir"
++                            coroutineScope.launch {
++                                settingsDataStore.saveLanguage(locale)
++                            }
+                         }
+                         .constrainAs(persianPosition) {
+                             height = Dimension.value(80.dp)
+@@ -173,6 +217,10 @@
+                             lightTheme = 3.dp
+                             darkTheme = 0.dp
+                             themeIsDark = false
++                            coroutineScope.launch {
++                                settingsDataStore.saveTheme(themeIsDark)
++                            }
++
+                         }
+                         .constrainAs(lightThemePosition) {
+                             height = Dimension.value(80.dp)
+@@ -203,6 +251,10 @@
+                             darkTheme = 3.dp
+                             lightTheme = 0.dp
+                             themeIsDark = true
++                            coroutineScope.launch {
++                                settingsDataStore.saveTheme(themeIsDark)
++                            }
++
+                         }
+                         .constrainAs(darkThemePosition) {
+                             height = Dimension.value(80.dp)
+@@ -232,10 +284,11 @@
+ 
+                 Button(elevation = ButtonDefaults.elevation(0.dp), shape = RoundedCornerShape(8.dp),
+                     onClick = {
+-//                        showWelcomeScreen = false
++                        coroutineScope.launch {
++                            settingsDataStore.showWelcomeScreen(false)
++                        }
+                               navController.navigate("main_screen"){
+-                                  navController.popBackStack()
+-                              }
++                                  navController.popBackStack() }
+                               },
+                     modifier = Modifier
+ 
+@@ -253,10 +306,4 @@
+             }
+         }
+     }
+-}
+-
+-@Preview(showSystemUi = true, showBackground = true)
+-@Composable
+-fun WelcomePagePreview() {
+-
+ }
+\ No newline at end of file
+Index: app/src/main/java/com/A_23_59/hypernote/ui/theme/Type.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/ui/theme/Type.kt b/app/src/main/java/com/golden_minute/nota/ui/theme/Type.kt
+rename from app/src/main/java/com/A_23_59/hypernote/ui/theme/Type.kt
+rename to app/src/main/java/com/golden_minute/nota/ui/theme/Type.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/ui/theme/Type.kt	
++++ b/app/src/main/java/com/golden_minute/nota/ui/theme/Type.kt	
+@@ -1,11 +1,11 @@
+-package com.A_23_59.hypernote.ui.theme
++package com.golden_minute.nota.ui.theme
+ 
+ import androidx.compose.material.Typography
+ import androidx.compose.ui.text.font.Font
+ import androidx.compose.ui.text.font.FontFamily
+ import androidx.compose.ui.text.font.FontStyle
+ import androidx.compose.ui.text.font.FontWeight
+-import com.A_23_59.hypernote.R
++import com.golden_minute.nota.R
+ 
+ 
+ 
+Index: app/src/main/java/com/A_23_59/hypernote/presentation/HomeScreen.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/presentation/HomeScreen.kt b/app/src/main/java/com/golden_minute/nota/presentation/HomeScreen.kt
+rename from app/src/main/java/com/A_23_59/hypernote/presentation/HomeScreen.kt
+rename to app/src/main/java/com/golden_minute/nota/presentation/HomeScreen.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/presentation/HomeScreen.kt	
++++ b/app/src/main/java/com/golden_minute/nota/presentation/HomeScreen.kt	
+@@ -1,20 +1,20 @@
+-package com.A_23_59.hypernote.presentation
++package com.golden_minute.nota.presentation
+ 
+ import android.annotation.SuppressLint
+ import android.os.Parcel
+ import android.os.Parcelable
+-import android.util.Log
+ import androidx.compose.animation.AnimatedContent
+ import androidx.compose.animation.AnimatedVisibility
+ import androidx.compose.animation.ContentTransform
++import androidx.compose.animation.ExitTransition
+ import androidx.compose.animation.animateColorAsState
+ import androidx.compose.animation.fadeIn
+ import androidx.compose.animation.fadeOut
+ import androidx.compose.animation.slideInVertically
+ import androidx.compose.animation.slideOutVertically
+ import androidx.compose.foundation.BorderStroke
+-import androidx.compose.foundation.ExperimentalFoundationApi
+ import androidx.compose.foundation.background
++import androidx.compose.foundation.border
+ import androidx.compose.foundation.clickable
+ import androidx.compose.foundation.interaction.MutableInteractionSource
+ import androidx.compose.foundation.layout.Arrangement
+@@ -40,7 +40,7 @@
+ import androidx.compose.foundation.pager.rememberPagerState
+ import androidx.compose.foundation.shape.CircleShape
+ import androidx.compose.foundation.shape.RoundedCornerShape
+-import androidx.compose.material.BottomAppBar
++import androidx.compose.material.BottomNavigation
+ import androidx.compose.material.BottomNavigationItem
+ import androidx.compose.material.Card
+ import androidx.compose.material.Chip
+@@ -72,6 +72,8 @@
+ import androidx.compose.runtime.rememberCoroutineScope
+ import androidx.compose.runtime.saveable.rememberSaveable
+ import androidx.compose.runtime.setValue
++import androidx.compose.runtime.snapshots.SnapshotStateList
++import androidx.compose.runtime.toMutableStateList
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.draw.clip
+@@ -92,22 +94,28 @@
+ import androidx.constraintlayout.compose.Dimension
+ import androidx.hilt.navigation.compose.hiltViewModel
+ import androidx.navigation.NavController
+-import androidx.navigation.compose.rememberNavController
+-import com.A_23_59.hypernote.R
+-import com.A_23_59.hypernote.domain.model.Note
+-import com.A_23_59.hypernote.domain.model.Priority
+-import com.A_23_59.hypernote.domain.model.Task
+-import com.A_23_59.hypernote.domain.util.HomeScreenNotesEvent
+-import com.A_23_59.hypernote.domain.util.HomeScreenTasksEvent
+-import com.A_23_59.hypernote.domain.util.NoteOrderType
+-import com.A_23_59.hypernote.domain.util.TaskOrderType
+-import com.A_23_59.hypernote.ui.theme.blueGradient
+-import com.A_23_59.hypernote.ui.theme.elevatedSurface
+-import com.A_23_59.hypernote.ui.theme.goldGradient
+-import com.A_23_59.hypernote.ui.theme.greyGradient
+-import com.A_23_59.hypernote.ui.theme.pacifico
+-import com.A_23_59.hypernote.ui.theme.redGradient
++import com.golden_minute.nota.R
++import com.golden_minute.nota.domain.model.Note
++import com.golden_minute.nota.domain.model.Priority
++import com.golden_minute.nota.domain.model.Tag
++import com.golden_minute.nota.domain.model.Task
++import com.golden_minute.nota.domain.util.HomeScreenNotesEvent
++import com.golden_minute.nota.domain.util.HomeScreenTasksEvent
++import com.golden_minute.nota.domain.util.NoteOrderType
++import com.golden_minute.nota.domain.util.TaskOrderType
++import com.golden_minute.nota.domain.util.leadingZero
++import com.golden_minute.nota.ui.theme.blueGradient
++import com.golden_minute.nota.ui.theme.elevatedSurface
++import com.golden_minute.nota.ui.theme.goldGradient
++import com.golden_minute.nota.ui.theme.greyGradient
++import com.golden_minute.nota.ui.theme.iranYekan
++import com.golden_minute.nota.ui.theme.iranYekanFarsiNamerals
++import com.golden_minute.nota.ui.theme.pacifico
++import com.golden_minute.nota.ui.theme.redGradient
++import com.golden_minute.nota.ui.theme.testBlue
+ import kotlinx.coroutines.launch
++import java.time.LocalDateTime
++import java.time.format.DateTimeFormatter
+ 
+ 
+ var isNotScrollingUp by mutableStateOf(false)
+@@ -162,7 +170,9 @@
+     itemIsTask: () -> Boolean = { true },
+     task: Task? = null,
+     note: Note? = null,
++    tags: List<Tag>,
+     viewModel: HomeScreenViewModel = hiltViewModel(),
++    activityViewModel: MainActivityViewModel = hiltViewModel(),
+     navController: NavController? = null,
+     onDelete: () -> Unit,
+     onEdit: () -> Unit,
+@@ -170,7 +180,7 @@
+     ) {
+     var isSelected by rememberSaveable { mutableStateOf(false) }
+     val interactionSource = remember { MutableInteractionSource() }
+-    var textHasOverflow by remember { mutableStateOf(false) }
++    var textHasOverflow by rememberSaveable { mutableStateOf(false) }
+     var expandButtonIsClicked by rememberSaveable { mutableStateOf(false) }
+     val density = LocalDensity.current
+     val gradientBackground = remember(key1 = task?.priority) {
+@@ -181,7 +191,6 @@
+             null -> blueGradient
+         }
+     }
+-
+     Card(elevation = 12.dp,
+         modifier = modifier
+             .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 20.dp)
+@@ -196,15 +205,28 @@
+                 indication = null,
+                 interactionSource = interactionSource
+             ) {
++
+                 isSelected = !isSelected
+-                if (isSelected)
+-                    task?.let { selectedTasks.add(it) }
+-                else
+-                    selectedTasks.remove(task)
++                if (currentPage == 0 && task?.id != null)
++                    viewModel.onEvent(HomeScreenTasksEvent.OnSelectionTaskClick(task, isSelected))
++                else {
++                    viewModel.onEvent(
++                        HomeScreenNotesEvent.OnSelectionNoteClick(
++                            note!!,
++                            isSelected
++                        )
++                    )
++                }
++
+ 
+             },
+         shape = RoundedCornerShape(12.dp)
+     ) {
++        if (currentPage == 1 && viewModel.selectedNotesList.size == viewModel.noteState.value.notes.size) {
++            isSelected = true
++        } else if (currentPage == 0 && viewModel.selectedTasksList.size == viewModel.taskState.value.tasks.size) {
++            isSelected = true
++        }
+         if (!selectBtnIsClicked)
+             isSelected = false
+         ConstraintLayout(
+@@ -214,19 +236,34 @@
+ 
+             ) {
+ 
+-            val (titlePosition, descriptionPosition, dividerPosition, reminderPosition, checkboxPosition, expandButtonPosition, taskTypePosition, tagsPosition, dueDateTextPosition, dueDatePosition, deletePosition, editPosition) = createRefs()
++            val (titlePosition, descriptionPosition, dividerPosition, reminderPosition, bottomLineSpacer, checkboxPosition, expandButtonPosition, taskTypePosition, tagsPosition, dueDateTextPosition, dueDatePosition, deletePosition, editPosition) = createRefs()
++
++            Spacer(modifier = Modifier
++                .height(12.dp)
++                .constrainAs(bottomLineSpacer) {
++                    width = Dimension.fillToConstraints
++                    start.linkTo(parent.start)
++                    end.linkTo(parent.end)
++                    top.linkTo(tagsPosition.bottom)
++                })
+ 
+             if (task != null) {
+                 Text(
+-                    text = task.title, style = MaterialTheme.typography.h6,
++                    text = task.title, style = MaterialTheme.typography.h5,
+                     color = Color.White,
+                     modifier = Modifier
+                         .constrainAs(titlePosition) {
+ 
+                             start.linkTo(dividerPosition.end, 12.dp)
++                            if (!task.hasReminder)
++                                end.linkTo(parent.end, 12.dp)
++                            else
++                                end.linkTo(reminderPosition.start, 8.dp)
+                             if (task.repeatTime?.isNotEmpty() == true) {
+                                 top.linkTo(taskTypePosition.top)
+                                 end.linkTo(taskTypePosition.start, 8.dp)
++                            } else {
++                                top.linkTo(parent.top, 10.dp)
+                             }
+                             width = Dimension.fillToConstraints
+ 
+@@ -235,12 +272,12 @@
+             } else
+                 note?.let {
+                     Text(
+-                        text = it.title, style = MaterialTheme.typography.h6,
++                        text = it.title, style = MaterialTheme.typography.h5,
+                         color = Color.White,
+                         modifier = Modifier
+                             .constrainAs(titlePosition) {
+                                 top.linkTo(parent.top, 8.dp)
+-                                end.linkTo(parent.end, 8.dp)
++                                end.linkTo(parent.end, 12.dp)
+                                 start.linkTo(dividerPosition.end, 12.dp)
+                                 width = Dimension.fillToConstraints
+ 
+@@ -248,17 +285,23 @@
+                     )
+                 }
+ 
+-            if (textHasOverflow) {
++            if (textHasOverflow && task!!.description.isNotBlank()) {
+                 val expandButtonIcon by remember { derivedStateOf { if (expandButtonIsClicked) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown } }
+                 AnimatedContent(
+                     targetState = expandButtonIcon,
+                     modifier = Modifier.constrainAs(expandButtonPosition) {
+ 
+-
+-                        if (note?.tagNumber1?.isBlank() ?: return@constrainAs && note.tagNumber2?.isBlank() ?: return@constrainAs && note.tagNumber3?.isBlank() ?: return@constrainAs)
+-                            top.linkTo(descriptionPosition.bottom, 8.dp)
+-                        else
+-                            top.linkTo(tagsPosition.bottom, 8.dp)
++                        if (currentPage == 1) {
++                            if (tags.none { it.tagNumber == 1 && it.noteID == note!!.id } && tags.none { it.tagNumber == 2 && it.noteID == note!!.id } && tags.none { it.tagNumber == 3 && it.noteID == note!!.id })
++                                top.linkTo(descriptionPosition.bottom, 8.dp)
++                            else
++                                top.linkTo(tagsPosition.bottom, 8.dp)
++                        } else {
++                            if (tags.none { it.tagNumber == 1 && it.taskID == task.id } && tags.none { it.tagNumber == 2 && it.taskID == task.id } && tags.none { it.tagNumber == 3 && it.taskID == task.id })
++                                top.linkTo(descriptionPosition.bottom)
++                            else
++                                top.linkTo(tagsPosition.bottom)
++                        }
+ 
+                         start.linkTo(parent.start)
+                         end.linkTo(parent.end)
+@@ -281,7 +324,7 @@
+ 
+             }
+ 
+-            if (itemIsTask()) {
++            if (currentPage == 0) {
+                 if (task?.repeatTime?.isNotEmpty() == true)
+                     Icon(
+                         painter = painterResource(
+@@ -320,7 +363,7 @@
+ 
+             if (task != null) {
+                 if (task.description.isNotBlank()) {
+-                    AnimatedContent(targetState = if (expandButtonIsClicked) Int.MAX_VALUE else 1,
++                    AnimatedContent(targetState = if (expandButtonIsClicked) Int.MAX_VALUE else 2,
+                         label = "descriptionAnimation", transitionSpec = {
+                             ContentTransform(
+                                 fadeIn(), fadeOut()
+@@ -329,7 +372,12 @@
+                             width = Dimension.fillToConstraints
+                             top.linkTo(titlePosition.bottom, 12.dp)
+                             start.linkTo(titlePosition.start)
+-                            end.linkTo(taskTypePosition.start, 16.dp)
++                            if (task.repeatTime?.isNotBlank() == true)
++                                end.linkTo(taskTypePosition.start, 16.dp)
++                            else if (task.hasReminder)
++                                end.linkTo(reminderPosition.start, 16.dp)
++                            else
++                                end.linkTo(parent.end, 16.dp)
+                         }
+                     ) {
+                         Text(
+@@ -361,7 +409,7 @@
+                                 width = Dimension.fillToConstraints
+                                 top.linkTo(titlePosition.bottom, 12.dp)
+                                 start.linkTo(titlePosition.start)
+-                                end.linkTo(taskTypePosition.start, 16.dp)
++                                end.linkTo(parent.end, 16.dp)
+                             }
+                         ) {
+                             Text(
+@@ -385,9 +433,14 @@
+ 
+ 
+             if (itemIsTask()) {
++
+                 task?.isChecked?.let {
++                    var isChecked by rememberSaveable {
++                        mutableStateOf(viewModel.taskState.value.tasks.find { it.id == task.id }?.isChecked)
++                    }
++                    isChecked = viewModel.taskState.value.tasks.find { it.id == task.id }?.isChecked
+                     AnimatedContent(
+-                        targetState = task.isChecked,
++                        targetState = isChecked,
+                         label = "itemIsChecked",
+                         modifier = Modifier
+                             .constrainAs(checkboxPosition) {
+@@ -395,7 +448,11 @@
+                                 top.linkTo(parent.top)
+ 
+                             }) { checked ->
+-                        IconButton(onClick = { task.isChecked = !task.isChecked!! }) {
++                        IconButton(onClick = {
++                            task.isChecked = !task.isChecked!!
++                            isChecked = !isChecked!!
++                            viewModel.onEvent(HomeScreenTasksEvent.OnCheckChange(task))
++                        }) {
+                             Icon(
+                                 painter = if (checked == true) painterResource(id = R.drawable.check_square) else painterResource(
+                                     id = R.drawable.square
+@@ -455,6 +512,7 @@
+                 createVerticalChain(editPosition, deletePosition, chainStyle = ChainStyle.Spread)
+ 
+             if (itemIsTask() && task?.dueDate != null) {
++                val localDateTime = LocalDateTime.parse(task.dueDate)
+ 
+                 Text(
+                     text = stringResource(R.string.task_due_date),
+@@ -462,25 +520,39 @@
+                     color = Color.White.copy(0.92F),
+                     modifier = Modifier.constrainAs(dueDateTextPosition) {
+                         if (task.description.isNotEmpty()) {
+-//                            if (tagNumber1.isEmpty() && tagNumber2.isEmpty() && tagNumber3.isEmpty())
+-                            top.linkTo(descriptionPosition.bottom, 16.dp)
+-//                            else
+-//                                top.linkTo(descriptionPosition.bottom, 24.dp)
++                            top.linkTo(descriptionPosition.bottom, 20.dp)
+                         } else {
+-                            if (note?.tagNumber1?.isBlank() ?: return@constrainAs && note.tagNumber2?.isBlank() ?: return@constrainAs && note.tagNumber3?.isBlank() ?: return@constrainAs)
+-                                top.linkTo(titlePosition.bottom, 32.dp)
+-                            else
+-                                top.linkTo(titlePosition.bottom, 16.dp)
++                            top.linkTo(titlePosition.bottom, 20.dp)
+                         }
+                         start.linkTo(titlePosition.start)
+                     })
+ 
++                val localDate = LocalDateTime.parse(
++                    task.dueDate,
++                    DateTimeFormatter.ISO_LOCAL_DATE_TIME
++                )
++                val calendarType = // whether is Jalali or Gregorian
++                    if (activityViewModel.languageData.value == "fa-ir") gregorian_to_jalali(
++                        localDate.year,
++                        localDate.monthValue,
++                        localDate.dayOfMonth
++                    ) else intArrayOf(
++                        localDate.year,
++                        localDate.monthValue,
++                        localDate.dayOfMonth
++                    )
++
+                 Text(
+-                    text = task.dueDate.toString(),
++                    text = "${calendarType[0]}/${leadingZero(calendarType[1].toString())}/${
++                        leadingZero(
++                            calendarType[2].toString()
++                        )
++                    }  ${leadingZero(localDateTime.hour.toString())}:${leadingZero(localDateTime.minute.toString())}",
+                     style = MaterialTheme.typography.body2,
++                    fontFamily = if (activityViewModel.languageData.value == "fa-ir") iranYekanFarsiNamerals else iranYekan,
+                     color = Color.White,
+                     modifier = Modifier.constrainAs(dueDatePosition) {
+-                        start.linkTo(dueDateTextPosition.end, 12.dp)
++                        start.linkTo(dueDateTextPosition.end, 6.dp)
+                         top.linkTo(dueDateTextPosition.top)
+                         bottom.linkTo(dueDateTextPosition.bottom)
+                     })
+@@ -496,17 +568,30 @@
+                     .constrainAs(tagsPosition) {
+                         start.linkTo(dividerPosition.start, 12.dp)
+                         width = Dimension.fillToConstraints
+-                        if (itemIsTask())
+-                            if (task?.dueDate != null)
+-                                top.linkTo(dueDateTextPosition.bottom, 16.dp)
+-                            else
+-                                top.linkTo(descriptionPosition.bottom, 16.dp)
+-                        else
+-                            top.linkTo(descriptionPosition.bottom, 16.dp)
+-                        if (note != null) {
+-                            if (note.description.length < 40)
+-                                bottom.linkTo(parent.bottom, 12.dp)
+-                        }
++                        if (itemIsTask() && task != null) {
++                            when {
++                                task.dueDate?.isNotBlank() == true -> {
++                                    top.linkTo(dueDateTextPosition.bottom, 16.dp)
++                                }
++
++                                task.description.isNotBlank() -> {
++                                    top.linkTo(descriptionPosition.bottom, 24.dp)
++                                }
++
++                                else -> {
++                                    top.linkTo(titlePosition.bottom, 16.dp)
++                                }
++                            }
++
++
++                        } else
++
++                            if (note != null) {
++                                top.linkTo(descriptionPosition.bottom, 16.dp)
++                                if (note.description.length < 40)
++                                    bottom.linkTo(parent.bottom, 12.dp)
++
++                            }
+ 
+                     }
+                     .wrapContentWidth()
+@@ -516,10 +601,6 @@
+                             columnLayoutWidth = with(density) {
+                                 it.size.width.toDp()
+                             }
+-                        Log.i(
+-                            TAG,
+-                            "TaskOrNote: the column layout width is equal to : $columnLayoutWidth"
+-                        )
+                     },
+                 verticalArrangement = Arrangement.spacedBy(12.dp),
+                 horizontalAlignment = Alignment.Start
+@@ -531,72 +612,125 @@
+                     verticalAlignment = Alignment.CenterVertically
+                 ) {
+ 
+-                    if (note?.tagNumber1?.isNotBlank() ?: return@Row && columnLayoutWidth < itemWidth - 20.dp) { // TODO !! TAGS WILL OVERFLOW !!
+-                        myTag(
+-                            note.tagNumber1,
+-                            Color.White,
+-                            borderStroke = 1.dp
+-                        )
+-                    }
+-                    if (note.tagNumber2?.isNotBlank() ?: return@Row && columnLayoutWidth < itemWidth - 20.dp) {
+-                        myTag(
+-                            note.tagNumber2,
+-                            Color.White,
+-                            borderStroke = 1.dp
+-                        )
+-                    }
++                    if (!itemIsTask()) {
++                        if (tags.any { it.tagName.isNotBlank() && it.tagNumber == 1 && it.noteID == note!!.id } && columnLayoutWidth < itemWidth - 20.dp) { // TODO !! TAGS WILL OVERFLOW !!
++                            myTag(
++                                tags.find { it.tagNumber == 1 && it.noteID == note!!.id }?.tagName ?: "",
++                                Color.White,
++                                borderStroke = 1.dp
++                            )
++                        }
++                        if (tags.any { it.tagName.isNotBlank() && it.tagNumber == 2 && it.noteID == note!!.id } && columnLayoutWidth < itemWidth - 20.dp) {
++                            myTag(
++                                tags.find { it.tagNumber == 2 && it.noteID == note!!.id }?.tagName ?: "",
++                                Color.White,
++                                borderStroke = 1.dp
++                            )
++                        }
++
++                        if (tags.any { it.tagName.isNotBlank() && it.tagNumber == 3 && it.noteID == note!!.id } && columnLayoutWidth < itemWidth - 20.dp) {
++                            myTag(
++                                tags.find { it.tagNumber == 3 && it.noteID == note!!.id }?.tagName ?: "",
++                                Color.White,
++                                borderStroke = 1.dp
++                            )
++                        }
++
++                        if (tags.any { it.tagName.isNotBlank() && it.tagNumber == 1 && it.noteID == note!!.id } && columnLayoutWidth > itemWidth - 20.dp) {
++                            myTag(
++                                tags.find { it.tagNumber == 1 && it.noteID == note!!.id }?.tagName ?: "",
++                                Color.White,
++                                borderStroke = 1.dp
++                            )
++
++                        }
++
++                        if (tags.any { it.tagName.isNotBlank() && it.tagNumber == 2 && it.noteID == note!!.id } && columnLayoutWidth > itemWidth - 20.dp) {
++                            myTag(
++                                tags.find { it.tagNumber == 2 && it.noteID == note!!.id }?.tagName ?: "",
++                                Color.White,
++                                borderStroke = 1.dp
++                            )
++
++                        }
++
++                        if (tags.any { it.tagName.isNotBlank() && it.tagNumber == 3 && it.noteID == note!!.id } && columnLayoutWidth > itemWidth - 20.dp) {
++                            myTag(
++                                tags.find { it.tagNumber == 3 && it.noteID == note!!.id }?.tagName ?: "",
++                                Color.White,
++                                borderStroke = 1.dp
++                            )
++                        }
++                    } else {
++                        if (tags.any { it.tagName.isNotBlank() && it.tagNumber == 1 && it.taskID == task?.id } && columnLayoutWidth < itemWidth - 20.dp) { // TODO !! TAGS WILL OVERFLOW !!
++                            myTag(
++                                tags.find { it.tagNumber == 1 && it.taskID == task?.id }?.tagName
++                                    ?: "",
++                                Color.White,
++                                borderStroke = 1.dp
++                            )
++                        }
++                        if (tags.any { it.tagName.isNotBlank() && it.tagNumber == 2 && it.taskID == task?.id } && columnLayoutWidth < itemWidth - 20.dp) {
++                            myTag(
++                                tags.find { it.tagNumber == 2 && it.taskID == task?.id }?.tagName
++                                    ?: "",
++                                Color.White,
++                                borderStroke = 1.dp
++                            )
++                        }
+ 
+-                    if (note.tagNumber3?.isNotEmpty() ?: return@Row && columnLayoutWidth < itemWidth - 20.dp) {
+-                        myTag(
+-                            note.tagNumber3,
+-                            Color.White,
+-                            borderStroke = 1.dp
+-                        )
+-                    }
++                        if (tags.any { it.tagName.isNotBlank() && it.tagNumber == 3 && it.taskID == task?.id } && columnLayoutWidth < itemWidth - 20.dp) {
++                            myTag(
++                                tags.find { it.tagNumber == 3 && it.taskID == task?.id }?.tagName
++                                    ?: "",
++                                Color.White,
++                                borderStroke = 1.dp
++                            )
++                        }
+ 
+-                }
+-                if (note?.tagNumber1?.isNotEmpty() ?: return@Column && columnLayoutWidth > itemWidth - 20.dp) {
+-                    myTag(
+-                        note.tagNumber1,
+-                        Color.White,
+-                        borderStroke = 1.dp
+-                    )
++                        if (tags.any { it.tagName.isNotBlank() && it.tagNumber == 1 && it.taskID == task?.id } && columnLayoutWidth > itemWidth - 20.dp) {
++                            myTag(
++                                tags.find { it.tagNumber == 1 && it.taskID == task?.id }?.tagName
++                                    ?: "",
++                                Color.White,
++                                borderStroke = 1.dp
++                            )
+ 
+-                }
++                        }
+ 
+-                if (columnLayoutWidth > itemWidth - 20.dp) {
+-                    note.tagNumber2?.let {
+-                        myTag(
+-                            it,
+-                            Color.White,
+-                            borderStroke = 1.dp
+-                        )
+-                    }
++                        if (tags.any { it.tagName.isNotBlank() && it.tagNumber == 2 && it.taskID == task?.id } && columnLayoutWidth > itemWidth - 20.dp) {
++                            myTag(
++                                tags.find { it.tagNumber == 2 && it.taskID == task?.id }?.tagName
++                                    ?: "",
++                                Color.White,
++                                borderStroke = 1.dp
++                            )
+ 
+-                }
++                        }
+ 
+-                if (columnLayoutWidth > itemWidth - 20.dp) {
+-                    note.tagNumber3?.let {
+-                        myTag(
+-                            it,
+-                            Color.White,
+-                            borderStroke = 1.dp
+-                        )
+-                    }
+-                }
++                        if (tags.any { it.tagName.isNotBlank() && it.tagNumber == 3 && it.taskID == task?.id } && columnLayoutWidth > itemWidth - 20.dp) {
++                            myTag(
++                                tags.find { it.tagNumber == 3 && it.taskID == task?.id }?.tagName
++                                    ?: "",
++                                Color.White,
++                                borderStroke = 1.dp
++                            )
++                        }
++                    }
+ 
+ 
++                }
+             }
++
+ 
+         }
++
+     }
+-
+-
+ }
+ 
+ 
+ @Composable
+-private fun LazyListState.isNotScrollingUp(): Boolean {  // this piece of code might have some bugs in future
++private fun LazyListState.isNotScrollingUp(): Boolean {
+     val isScrollingToEnd by remember { derivedStateOf { layoutInfo.visibleItemsInfo.lastOrNull()?.index == layoutInfo.totalItemsCount - 1 } }
+     val previousLastItem by remember { mutableIntStateOf(layoutInfo.visibleItemsInfo.lastIndex) }
+     var previousIndex by remember(this) { mutableIntStateOf(firstVisibleItemIndex) }
+@@ -622,15 +756,19 @@
+ @SuppressLint("SuspiciousIndentation")
+ @OptIn(ExperimentalMaterialApi::class)
+ @Composable
+-fun ChipsSection(itemsAreTasks: Boolean, viewModel: HomeScreenViewModel = hiltViewModel()) {
++fun ChipsSection(
++    itemsAreTasks: Boolean,
++    navController: NavController,
++    viewModel: HomeScreenViewModel = hiltViewModel()
++) {
+     val context = LocalContext.current
+     var selectedOrder by rememberSaveable { mutableStateOf("") }
+-    val tagsName = arrayListOf<String>()
++
+ 
+ 
+     val taskOrderList = arrayOf(
+         context.getString(R.string.txt_main_tags),
+-        context.getString(R.string.txt_main_importance),
++        context.getString(R.string.priority),
+         context.getString(R.string.txt_main_date),
+         context.getString(R.string.txt_completed_tasks),
+         context.getString(R.string.txt_undone),
+@@ -639,6 +777,7 @@
+     )
+     val noteOrderList = arrayOf(
+         context.getString(R.string.txt_main_tags),
++        context.getString(R.string.creation_date),
+         context.getString(R.string.txt_main_ascending),
+         context.getString(R.string.txt_main_descending)
+     )
+@@ -676,20 +815,14 @@
+                     onClick = {
+                         if (currentPage == 0)
+                             when (item) {
+-                                context.getString(R.string.txt_main_tags) -> {
+-                                    viewModel.onEvent(
+-                                        HomeScreenTasksEvent.HomeScreenTasksOrder(
+-                                            TaskOrderType.Tags(tagsName)
+-                                        )
+-                                    )
+-                                }
+ 
+-                                context.getString(R.string.txt_main_importance) -> {
++                                context.getString(R.string.priority) -> {
+                                     viewModel.onEvent(
+                                         HomeScreenTasksEvent.HomeScreenTasksOrder(
+                                             TaskOrderType.Priority
+                                         )
+                                     )
++
+                                 }
+ 
+                                 context.getString(R.string.txt_main_date) -> {
+@@ -698,6 +831,7 @@
+                                             TaskOrderType.DueDate
+                                         )
+                                     )
++
+                                 }
+ 
+                                 context.getString(R.string.txt_completed_tasks) -> {
+@@ -706,6 +840,7 @@
+                                             TaskOrderType.Completed
+                                         )
+                                     )
++
+                                 }
+ 
+                                 context.getString(R.string.txt_undone) -> {
+@@ -714,6 +849,7 @@
+                                             TaskOrderType.Undone
+                                         )
+                                     )
++
+                                 }
+ 
+                                 context.getString(R.string.txt_main_ascending) -> {
+@@ -722,6 +858,7 @@
+                                             TaskOrderType.Ascending
+                                         )
+                                     )
++
+                                 }
+ 
+                                 context.getString(R.string.txt_main_descending) -> {
+@@ -730,18 +867,19 @@
+                                             TaskOrderType.Descending
+                                         )
+                                     )
++
++                                }
++
++                                context.getString(R.string.txt_main_tags) -> {
++                                        showTagsDialog =
++                                            item == context.getString(R.string.txt_main_tags)
++                                        viewModel.onEvent(HomeScreenTasksEvent.OnTagDialogClick)
+                                 }
+                             }
+                         else {
++
++
+                             when (item) {
+-                                context.getString(R.string.txt_main_tags) -> {
+-                                    viewModel.onEvent(
+-                                        HomeScreenNotesEvent.OrderNote(
+-                                            NoteOrderType.Tags(tagsName),
+-                                            tagOrderIsActive = true
+-                                        )
+-                                    )
+-                                }
+ 
+                                 context.getString(R.string.txt_main_ascending) -> {
+                                     viewModel.onEvent(HomeScreenNotesEvent.OrderNote(NoteOrderType.Ascending))
+@@ -750,10 +888,21 @@
+                                 context.getString(R.string.txt_main_descending) -> {
+                                     viewModel.onEvent(HomeScreenNotesEvent.OrderNote(NoteOrderType.Descending))
+                                 }
++
++                                context.getString(R.string.creation_date) -> {
++                                    viewModel.onEvent(HomeScreenNotesEvent.OrderNote(NoteOrderType.CreationDate))
++                                }
++
++                                context.getString(R.string.txt_main_tags) -> {
++                                        showTagsDialog =
++                                            item == context.getString(R.string.txt_main_tags)
++                                        viewModel.onEvent(HomeScreenNotesEvent.OnTagDialogClick)
++
++
++                                }
+                             }
+                         }
+                         selectedOrder = item
+-                        showTagsDialog = selectedOrder == context.getString(R.string.txt_main_tags)
+ 
+ 
+                     },
+@@ -778,10 +927,10 @@
+ }
+ 
+ 
+-@OptIn(ExperimentalFoundationApi::class)
++@SuppressLint("SuspiciousIndentation")
+ @Composable
+ fun ItemsListSection(
+-    viewModel: HomeScreenViewModel = hiltViewModel(),
++    viewModel: HomeScreenViewModel,
+     itemsAreTasks: Boolean,
+     navController: NavController
+ ) {
+@@ -791,35 +940,42 @@
+ 
+     isNotScrollingUp = lazyListState.isNotScrollingUp()
+ 
++
+     LazyColumn(
+         state = lazyListState,
+         contentPadding = PaddingValues(top = 56.dp, bottom = 60.dp),
+ 
+         content = {
+ 
+-            item { ChipsSection(itemsAreTasks) }
++            item { ChipsSection(itemsAreTasks, navController) }
+ 
+-            if (currentPage == 0)
++            if (currentPage == 0){
++                var filteredTagsList: SnapshotStateList<Tag>
+                 items(
+                     items = viewModel.taskState.value.tasks, key = { it.id!! }) { taskItem ->
++                    filteredTagsList = viewModel.tagsList.filter { it.taskID == taskItem.id }.toMutableStateList()
+                     TaskOrNote(
+-                        modifier = Modifier.animateItemPlacement(),
++                        modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null),
+                         task = taskItem,
++                        tags = filteredTagsList,
+                         onDelete = {
+                             viewModel.onEvent(HomeScreenTasksEvent.DeleteTask(taskItem))
+                         },
+                         onEdit = {
+-                            navController.navigate("add_note_screen?id=${taskItem.id}")
++                            navController.navigate("add_task_screen?id=${taskItem.id}")
+                         })
+                 }
++            }
+             else
+                 items(
+-                    items = viewModel.noteState.value.notes
++                    items = viewModel.noteState.value.notes, key = { it.id!! }
+                 ) { noteItem ->
++
+                     TaskOrNote(
+-                        modifier = Modifier.animateItemPlacement(),
++                        modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null),
+                         itemIsTask = { false },
+                         note = noteItem,
++                        tags = viewModel.tagsList.filter { it.noteID == noteItem.id },
+                         onDelete = {
+                             viewModel.onEvent(HomeScreenNotesEvent.DeleteNote(noteItem))
+                         },
+@@ -829,22 +985,23 @@
+                 }
+         })
+ 
++
+ }
+ 
+ 
+-@OptIn(ExperimentalFoundationApi::class)
+ @Composable
+ fun MyViewPager(
+     navController: NavController,
+     pagerState: PagerState,
+     modifier: Modifier,
++    viewModel: HomeScreenViewModel
+ ) {
+ 
+     HorizontalPager(state = pagerState, userScrollEnabled = false) { position ->
+ 
+         when (position) {
+-            0 -> Tasks(navController = navController)
+-            1 -> Notes(navController = navController)
++            0 -> Tasks(navController = navController, viewModel = viewModel)
++            1 -> Notes(navController = navController, viewModel = viewModel)
+         }
+ 
+ 
+@@ -853,33 +1010,31 @@
+ 
+ 
+ @Composable
+-fun Notes(elements: HomeScreenViewModel = hiltViewModel(), navController: NavController) {
++fun Notes(viewModel: HomeScreenViewModel, navController: NavController) {
+ 
+     AnimatedVisibility(
+-        visible = elements.noteState.value.notes.isEmpty(),
++        visible = viewModel.noteState.value.notes.isEmpty(),
+         enter = fadeIn(),
+-        exit = fadeOut()
++        exit = ExitTransition.None,
+     ) {
+         EmptyState()
+     }
+ 
+-    ItemsListSection(itemsAreTasks = false, navController = navController)
+-    Log.i(TAG, "Notes: ")
++    ItemsListSection(itemsAreTasks = false, navController = navController, viewModel = viewModel)
+ }
+ 
+ @Composable
+-fun Tasks(elements: HomeScreenViewModel = hiltViewModel(), navController: NavController) {
++fun Tasks(viewModel: HomeScreenViewModel, navController: NavController) {
+ 
+     AnimatedVisibility(
+-        visible = elements.taskState.value.tasks.isEmpty(),
++        visible = viewModel.taskState.value.tasks.isEmpty(),
+         enter = fadeIn(),
+-        exit = fadeOut()
++        exit = ExitTransition.None
+     ) {
+         EmptyState()
+     }
+ 
+-    ItemsListSection(itemsAreTasks = true, navController = navController)
+-    Log.i(TAG, "Tasks: ")
++    ItemsListSection(itemsAreTasks = true, navController = navController, viewModel = viewModel)
+ }
+ 
+ @Composable
+@@ -890,7 +1045,7 @@
+     textModifier: Modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+     roundedCornerValue: Dp = 5.dp,
+     deletable: Boolean = false,
+-    borderStroke: Dp = 2.dp,
++    borderStroke: Dp = 1.dp,
+     onClick: (() -> Unit?)? = null,
+ ): Boolean {
+ 
+@@ -937,9 +1092,8 @@
+             Text(
+                 text = tagTitle,
+                 color = color,
+-                fontWeight = FontWeight.Bold,
+                 textAlign = textAlignment,
+-                modifier = textModifier,
++                modifier = textModifier.padding(2.dp),
+                 style = MaterialTheme.typography.caption,
+             )
+ 
+@@ -964,15 +1118,30 @@
+             },
+             actions = {
+                 IconButton(onClick = {
+-                    searchBtnIsClicked = true
+-                    viewModel.onEvent(HomeScreenNotesEvent.ToggleSearchbarVisibility)
++                    if (currentPage == 0 && viewModel.taskState.value.tasks.isNotEmpty()) {
++                        searchBtnIsClicked = true
++                        viewModel.onEvent(HomeScreenTasksEvent.ToggleSearchbarVisibility)
++                    } else if (currentPage == 1 && viewModel.noteState.value.notes.isNotEmpty()) {
++                        searchBtnIsClicked = true
++                        viewModel.onEvent(HomeScreenNotesEvent.ToggleSearchbarVisibility)
++                    }
++
+                 }) {
+                     Icon(
+                         painter = painterResource(id = R.drawable.search_lg),
+                         contentDescription = "Search"
+                     )
+                 }
+-                IconButton(onClick = { selectBtnIsClicked = true }) {
++                IconButton(onClick = {
++
++                    if (currentPage == 0 && viewModel.taskState.value.tasks.isNotEmpty()) {
++                        selectBtnIsClicked = true
++                    } else if (currentPage == 1 && viewModel.noteState.value.notes.isNotEmpty()) {
++                        selectBtnIsClicked = true
++                    }
++
++
++                }) {
+                     Icon(
+                         painter = painterResource(id = R.drawable.check),
+                         contentDescription = null
+@@ -1021,14 +1190,13 @@
+ }
+ 
+ 
+-@OptIn(ExperimentalFoundationApi::class)
+ @Composable
+ fun HomePage(
+     navController: NavController,
+-    viewModel: HomeScreenViewModel = hiltViewModel()
++    viewModel: HomeScreenViewModel = hiltViewModel(),
++    activityViewModel: MainActivityViewModel
+ ) {
+     val coroutineScope = rememberCoroutineScope()
+-
+     var taskIsSelected by rememberSaveable { mutableStateOf(true) }
+     val pagerState = rememberPagerState(
+         initialPage = 0,
+@@ -1049,22 +1217,29 @@
+         bottomBar = {
+             AnimatedVisibility(
+                 visible = isNotScrollingUp && !selectBtnIsClicked && !searchBtnIsClicked,
+-                enter = slideInVertically() + fadeIn(),
+-                exit = fadeOut() + slideOutVertically()
++                enter = fadeIn() + slideInVertically(),
++                exit = fadeOut()
+             ) {
+ 
+-                BottomAppBar(
++                BottomNavigation(
+                     elevation = 0.dp,
+                     modifier = Modifier
+-                        .padding(start = 24.dp, end = 24.dp, bottom = 12.dp)
++                        .padding(start = 30.dp, end = 30.dp, bottom = 12.dp)
+                         .clip(RoundedCornerShape(12.dp)),
+-                    backgroundColor = Color.Transparent
++                    backgroundColor = Color.Transparent,
+                 ) {
+                     Row(
+                         Modifier
+                             .fillMaxWidth()
+                             .clip(RoundedCornerShape(12.dp))
+-                            .background(if (themeIsDark) elevatedSurface else MaterialTheme.colors.surface)
++                            .background(if (activityViewModel.themeData.value) elevatedSurface else testBlue)
++                            .border(
++                                width = 0.5.dp,
++                                if (activityViewModel.themeData.value) Color.White.copy(0.1f) else Color.Black.copy(
++                                    0.1f
++                                ),
++                                RoundedCornerShape(12.dp)
++                            )
+ 
+                     ) {
+                         BottomNavigationItem(
+@@ -1073,8 +1248,8 @@
+                             onClick = {
+                                 coroutineScope.launch {
+                                     taskIsSelected = true
+-                                    pagerState.animateScrollToPage(0)
+                                     viewModel.onEvent(HomeScreenTasksEvent.TaskScreenLoaded)
++                                    pagerState.animateScrollToPage(0)
+ 
+                                 }
+                             },
+@@ -1082,10 +1257,12 @@
+                                 Icon(
+                                     painter = painterResource(id = R.drawable.check_square_broken),
+                                     contentDescription = "tasks"
++
+                                 )
+                             },
+                             label = {
+                                 Text(
++
+                                     text = stringResource(id = R.string.txt_main_tasks),
+ 
+                                     )
+@@ -1093,16 +1270,18 @@
+                         Spacer(modifier = Modifier.width(80.dp))
+                         BottomNavigationItem(
+                             selected = !taskIsSelected, alwaysShowLabel = false,
++
+                             onClick = {
+                                 coroutineScope.launch {
+                                     taskIsSelected = false
++                                    viewModel.onEvent(HomeScreenNotesEvent.NoteScreenLoaded)
+                                     pagerState.animateScrollToPage(1)
+-                                    viewModel.onEvent(HomeScreenNotesEvent.NoteScreenLoaded)
+ 
+                                 }
+                             },
+                             icon = {
+                                 Icon(
++
+                                     painter = painterResource(id = R.drawable.file_06),
+                                     contentDescription = "notes"
+                                 )
+@@ -1131,8 +1310,8 @@
+         ) {
+             val (selectBtnPosition, searchBtnPosition, topAppBarPosition, viewpagerPosition) = createRefs()
+ 
+-            MyViewPager(navController,
+-                pagerState = pagerState,
++            MyViewPager(navController = navController, viewModel = viewModel,
++                pagerState = pagerState, modifier =
+                 Modifier
+                     .padding(top = 8.dp)
+                     .constrainAs(viewpagerPosition) {
+@@ -1188,16 +1367,18 @@
+ @Composable
+ fun SearchTextField(viewModel: HomeScreenViewModel = hiltViewModel()) {
+ 
+-    var value by remember { mutableStateOf("") }
+-
+     Box(Modifier.fillMaxWidth()) {
+         TextField(
+-            value = value, modifier = Modifier
++            value = viewModel.searchValue, modifier = Modifier
+                 .fillMaxWidth()
+                 .height(56.dp), trailingIcon = {
+                 IconButton(onClick = {
+                     searchBtnIsClicked = false
+-                    viewModel.onEvent(HomeScreenNotesEvent.ClearSearchValue)
++                    viewModel.searchValue = ""
++                    if (currentPage == 1)
++                        viewModel.onEvent(HomeScreenNotesEvent.SearchValueChanged(viewModel.searchValue))
++                    else
++                        viewModel.onEvent(HomeScreenTasksEvent.SearchValueChanged(viewModel.searchValue))
+                 }) {
+                     Icon(
+                         painter = painterResource(id = R.drawable.x_close),
+@@ -1213,12 +1394,15 @@
+             ),
+             shape = RoundedCornerShape(0.dp),
+             onValueChange = {
+-                value = it
+-                viewModel.onEvent(HomeScreenNotesEvent.SearchValueChanged(value))
++                viewModel.searchValue = it
++                if (currentPage == 1)
++                    viewModel.onEvent(HomeScreenNotesEvent.SearchValueChanged(viewModel.searchValue))
++                else
++                    viewModel.onEvent(HomeScreenTasksEvent.SearchValueChanged(viewModel.searchValue))
+             }
+         )
+         AnimatedVisibility(
+-            visible = viewModel.noteState.value.searchBarValue.isBlank(),
++            visible = viewModel.searchValue.isBlank(),
+             exit = fadeOut(),
+             enter = fadeIn()
+         ) {
+@@ -1242,7 +1426,7 @@
+ 
+ 
+ @Composable
+-fun SelectMode() {
++fun SelectMode(homeScreenViewModel: HomeScreenViewModel = hiltViewModel()) {
+     ConstraintLayout(
+         Modifier
+             .fillMaxWidth()
+@@ -1252,7 +1436,7 @@
+ 
+         val (deleteIcon, selectAllIcon, closeIcon, markAsCheckedIcon, itemsSelectedText) = createRefs()
+         AnimatedContent(
+-            targetState = selectedTasks.size,
++            targetState = if (currentPage == 0) homeScreenViewModel.selectedTasksList.size else homeScreenViewModel.selectedNotesList.size,
+             label = "selection animation",
+             modifier = Modifier.constrainAs(itemsSelectedText) {
+                 start.linkTo(parent.start, 8.dp)
+@@ -1274,12 +1458,19 @@
+         IconButton(
+             onClick = {
+                 selectBtnIsClicked = false
+-                selectedTasks.clear()
++                homeScreenViewModel.selectedNotesList.clear()
++                homeScreenViewModel.selectedTasksList.clear()
+             },
+             modifier = Modifier.constrainAs(closeIcon) {
+-                end.linkTo(selectAllIcon.start)
+                 bottom.linkTo(parent.bottom)
+                 top.linkTo(parent.top)
++
++                if (currentPage == 0)
++                    end.linkTo(markAsCheckedIcon.start)
++                else
++                    end.linkTo(selectAllIcon.start)
++
++
+             }) {
+             Icon(
+                 painter = painterResource(id = R.drawable.x_close),
+@@ -1287,7 +1478,22 @@
+                 tint = Color.White
+             )
+         }
+-        IconButton(onClick = { /*TODO*/ }, modifier = Modifier.constrainAs(deleteIcon) {
++        IconButton(onClick = {
++            selectBtnIsClicked = false
++            if (currentPage == 1)
++                homeScreenViewModel.onEvent(
++                    HomeScreenNotesEvent.ToolbarActionClicked(
++                        SelectModeEvents.DeleteNotes
++                    )
++                )
++            else
++                homeScreenViewModel.onEvent(
++                    HomeScreenTasksEvent.ToolbarActionClicked(
++                        SelectModeEvents.DeleteTasks
++                    )
++                )
++
++        }, modifier = Modifier.constrainAs(deleteIcon) {
+             end.linkTo(parent.end)
+             bottom.linkTo(parent.bottom)
+             top.linkTo(parent.top)
+@@ -1299,38 +1505,53 @@
+             )
+         }
+ 
+-        IconButton(onClick = { /*TODO*/ }, modifier = Modifier.constrainAs(selectAllIcon) {
+-            end.linkTo(markAsCheckedIcon.start)
++        IconButton(onClick = {
++            if (currentPage == 0)
++                homeScreenViewModel.onEvent(
++                    HomeScreenTasksEvent.ToolbarActionClicked(
++                        SelectModeEvents.SelectAllTasks
++                    )
++                )
++            else
++                homeScreenViewModel.onEvent(
++                    HomeScreenNotesEvent.ToolbarActionClicked(
++                        SelectModeEvents.SelectAllNotes
++                    )
++                )
++        }, modifier = Modifier.constrainAs(selectAllIcon) {
++            end.linkTo(deleteIcon.start)
+             top.linkTo(parent.top)
+             bottom.linkTo(parent.bottom)
+         }) {
+             Icon(
+                 painter = painterResource(id = R.drawable.list),
+-                contentDescription = "mark as checked", tint = Color.White
++                contentDescription = "select All", tint = Color.White
+             )
+         }
+-        IconButton(onClick = { /*TODO*/ }, modifier = Modifier.constrainAs(markAsCheckedIcon) {
+-            end.linkTo(deleteIcon.start)
+-            bottom.linkTo(parent.bottom)
+-            top.linkTo(parent.top)
+-        }) {
+-            Icon(
+-                painter = painterResource(id = R.drawable.check_square),
+-                contentDescription = "check all", tint = Color.White
+-            )
+-        }
++        if (currentPage == 0)
++            IconButton(onClick = {
++                selectBtnIsClicked = false
++                homeScreenViewModel.onEvent(
++                    HomeScreenTasksEvent.ToolbarActionClicked(
++                        SelectModeEvents.CheckSelectedTasks
++                    )
++                )
++            }, modifier = Modifier.constrainAs(markAsCheckedIcon) {
++                end.linkTo(selectAllIcon.start)
++                bottom.linkTo(parent.bottom)
++                top.linkTo(parent.top)
++            }) {
++                Icon(
++                    painter = painterResource(id = R.drawable.check_square),
++                    contentDescription = "check all", tint = Color.White
++                )
++            }
+     }
+ 
+ 
+ }
+ 
+ 
+-@Preview(showBackground = true, showSystemUi = true)
+-@Composable
+-fun HomePagePreview() {
+-    HomePage(navController = rememberNavController())
+-}
+-
+ @Preview(showBackground = true, showSystemUi = true)
+ @Composable
+ fun SearchPreview() {
+Index: app/src/main/res/values/strings.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><resources>\r\n    <string name=\"app_name\" translatable=\"false\">Nota</string>\r\n    <string name=\"txt_theme\">Theme:</string>\r\n    <string name=\"txt_language\">Language :</string>\r\n    <string name=\"txt_welcome\">Welcome to the Nota</string>\r\n    <string name=\"txt_light\">Light</string>\r\n    <string name=\"txt_dark\">Dark</string>\r\n    <string name=\"txt_confirm\">Getting Started</string>\r\n    <string name=\"txt_main_tasks\">TASKS</string>\r\n    <string name=\"txt_main_notes\">NOTES</string>\r\n    <string name=\"txt_main_sort_as\">Sort As : need a parameter</string>\r\n    <string name=\"txt_main_search\">Search…</string>\r\n    <string name=\"txt_main_items_selected\">Selected</string>\r\n    <string name=\"txt_main_ascending\">Ascending</string>\r\n    <string name=\"txt_main_descending\">Descending</string>\r\n    <string name=\"txt_completed_tasks\">Completed</string>\r\n    <string name=\"txt_undone\">Undone</string>\r\n    <string name=\"txt_main_importance\">importance</string>\r\n    <string name=\"txt_main_tags\">Tags...</string>\r\n    <string name=\"txt_main_date\">Date</string>\r\n    <string name=\"repeat\">Repeat</string>\r\n    <string name=\"sort_as\">Sort As :</string>\r\n    <string name=\"add_new_task\">Add Task</string>\r\n    <string name=\"add_new_note\">Add Note</string>\r\n    <string name=\"add_to_the_tasks\">ADD TO THE TASKS</string>\r\n    <string name=\"add_to_the_notes\">ADD TO THE NOTES</string>\r\n    <string name=\"edit_the_task\">EDIT THE TASK</string>\r\n    <string name=\"edit_the_note\">EDIT THE NOTE</string>\r\n    <string name=\"adding_task\">Adding \"\" Task</string>\r\n    <string name=\"adding_note\">Adding Note</string>\r\n    <string name=\"editing_task\">Editing Task</string>\r\n    <string name=\"editing_note\">Editing Note</string>\r\n    <string name=\"text_field_title\">Title</string>\r\n    <string name=\"level_of_importance\">Level Of Importance  :</string>\r\n    <string name=\"low\">Low</string>\r\n    <string name=\"medium\">Medium</string>\r\n    <string name=\"high\">High</string>\r\n    <string name=\"task_type\">Task Type :</string>\r\n    <string name=\"tags\">Tags :</string>\r\n    <string name=\"textfield_description\">Description</string>\r\n    <string name=\"textfield_description_optional\">Description\" \"(optional)</string>\r\n    <string name=\"creation_date_task\">Task Creation Date :</string>\r\n    <string name=\"creation_date_note\">Note Creation Date :</string>\r\n    <string name=\"task_due_date\">Task Due Date :</string>\r\n    <string name=\"due_time\">Due Time :</string>\r\n    <string name=\"due_date\">\"Due Date : \"</string>\r\n    <string name=\"due_date_add_screen\">\"Due Date\"</string>\r\n    <string name=\"choose_date_and_time\">Choose Date And Time</string>\r\n    <string name=\"at\">At</string>\r\n    <string name=\"date\">Date :</string>\r\n    <string name=\"year\">Year</string>\r\n    <string name=\"month\">Month</string>\r\n    <string name=\"day\">Day</string>\r\n    <string name=\"time\">\"Time : \"</string>\r\n    <string name=\"hour\">Hour</string>\r\n    <string name=\"minute\">Minute</string>\r\n    <string name=\"set_time_and_date\">Set Time And Date</string>\r\n    <string name=\"invalid_input\">Invalid Input</string>\r\n    <string name=\"day_before_today\">The day value entered is before today</string>\r\n    <string name=\"month_before_this_month\">The month value entered is before the current month</string>\r\n    <string name=\"year_before_this_year\">The entered year value is before the current year</string>\r\n    <string name=\"the_date_entered_is_before_today_s_date\">The date entered is before today\\'s date</string>\r\n    <string name=\"today\">Today</string>\r\n    <string name=\"tomorrow\">Tomorrow</string>\r\n    <string name=\"after_tomorrow\">After Tomorrow</string>\r\n    <string name=\"date_templates\">Date Templates</string>\r\n    <string name=\"predefined\">Predefined</string>\r\n    <string name=\"custom\">Custom</string>\r\n    <string name=\"choose\">Choose</string>\r\n    <string name=\"up_to_three_tags\">Up to three tags</string>\r\n    <string name=\"tag_name\">Tag Name</string>\r\n    <string name=\"note\">Note</string>\r\n    <string name=\"task\">Task</string>\r\n    <string name=\"have_reminder\">Have Reminder</string>\r\n    <string name=\"has_reminder\">Has Reminder</string>\r\n    <string name=\"daily\">Daily</string>\r\n    <string name=\"weekly\">Weekly</string>\r\n    <string name=\"monthly\">Monthly</string>\r\n    <string name=\"yearly\">Yearly</string>\r\n    <string name=\"settings\">Settings</string>\r\n    <string name=\"filter_tags\">Filter Tags</string>\r\n    <string name=\"task_list_is_empty\">Task\\'s List is Empty !</string>\r\n    <string name=\"note_list_is_empty\">Note\\'s List is Empty</string>\r\n\r\n\r\n</resources>
+===================================================================
+diff --git a/app/src/main/res/values/strings.xml b/app/src/main/res/values/strings.xml
+--- a/app/src/main/res/values/strings.xml	
++++ b/app/src/main/res/values/strings.xml	
+@@ -2,7 +2,8 @@
+     <string name="app_name" translatable="false">Nota</string>
+     <string name="txt_theme">Theme:</string>
+     <string name="txt_language">Language :</string>
+-    <string name="txt_welcome">Welcome to the Nota</string>
++    <string name="txt_welcome">Simple, but powerful</string>
++    <string name="txt_welcome_description">Get rid of the stress of forgetting and organize your thoughts easier and faster than before with Nota</string>
+     <string name="txt_light">Light</string>
+     <string name="txt_dark">Dark</string>
+     <string name="txt_confirm">Getting Started</string>
+@@ -15,7 +16,7 @@
+     <string name="txt_main_descending">Descending</string>
+     <string name="txt_completed_tasks">Completed</string>
+     <string name="txt_undone">Undone</string>
+-    <string name="txt_main_importance">importance</string>
++    <string name="priority">importance</string>
+     <string name="txt_main_tags">Tags...</string>
+     <string name="txt_main_date">Date</string>
+     <string name="repeat">Repeat</string>
+@@ -79,8 +80,17 @@
+     <string name="yearly">Yearly</string>
+     <string name="settings">Settings</string>
+     <string name="filter_tags">Filter Tags</string>
+-    <string name="task_list_is_empty">Task\'s List is Empty !</string>
+-    <string name="note_list_is_empty">Note\'s List is Empty</string>
++    <string name="task_list_is_empty">No Tasks Yet !</string>
++    <string name="note_list_is_empty">No Notes Yet !</string>
++    <string name="the_title_is_empty">the title is empty</string>
++    <string name="the_description_is_empty">the description is empty</string>
++    <string name="tag_s_list_is_empty">Tag\'s List Is Empty</string>
++    <string name="delete_tags">Delete Tags</string>
++    <string name="creation_date">Creation Date</string>
++    <string name="choose_time">Choose Time</string>
++    <string name="dismiss">Dismiss</string>
++    <string name="OK">OK</string>
++    <string name="time_or_date_is_before_current_time">Time or Date is before current time</string>
+ 
+ 
+ </resources>
+\ No newline at end of file
+Index: app/src/main/java/com/A_23_59/hypernote/domain/util/NoteOrderType.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/domain/util/NoteOrderType.kt b/app/src/main/java/com/golden_minute/nota/domain/util/NoteOrderType.kt
+rename from app/src/main/java/com/A_23_59/hypernote/domain/util/NoteOrderType.kt
+rename to app/src/main/java/com/golden_minute/nota/domain/util/NoteOrderType.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/domain/util/NoteOrderType.kt	
++++ b/app/src/main/java/com/golden_minute/nota/domain/util/NoteOrderType.kt	
+@@ -1,7 +1,8 @@
+-package com.A_23_59.hypernote.domain.util
++package com.golden_minute.nota.domain.util
+ 
+ sealed class NoteOrderType {
+     data object Ascending : NoteOrderType()
+     data object Descending : NoteOrderType()
+-    data class Tags(val tags: List<String>) : NoteOrderType()
++    data object CreationDate : NoteOrderType()
++    data object Default : NoteOrderType()
+ }
+\ No newline at end of file
+Index: app/src/main/java/com/A_23_59/hypernote/domain/model/Note.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/domain/model/Note.kt b/app/src/main/java/com/golden_minute/nota/domain/model/Note.kt
+rename from app/src/main/java/com/A_23_59/hypernote/domain/model/Note.kt
+rename to app/src/main/java/com/golden_minute/nota/domain/model/Note.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/domain/model/Note.kt	
++++ b/app/src/main/java/com/golden_minute/nota/domain/model/Note.kt	
+@@ -1,24 +1,20 @@
+-package com.A_23_59.hypernote.domain.model
++package com.golden_minute.nota.domain.model
+ 
+ import androidx.room.Entity
+ import androidx.room.PrimaryKey
+-import kotlinx.serialization.Serializable
+ import java.time.format.DateTimeFormatter
+ @Entity(tableName = "tbl_note")
+  data class Note(
+     @PrimaryKey
+     val id :Int? =null,
+-    val editModeIsTrue: Boolean = false,
+     val title: String,
+     val description: String,
+-    val priority: Priority = Priority.LOW,
+-    val tagNumber1: String? = null,
+-    val tagNumber2: String? = null,
+-    val tagNumber3: String? = null,
++    val creationDate: Long? = null,
++    val priority: Priority = Priority.LOW
+ ){
+     companion object{
+         val timeFormat = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm")
+     }
+ }
+ 
+-public class InvalidNoteException(message: String) : Exception(message)
++ class InvalidNoteException(message: String) : Exception(message)
+Index: app/src/main/java/com/A_23_59/hypernote/domain/use_case/tags/GetTags.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/domain/use_case/tags/GetTags.kt b/app/src/main/java/com/golden_minute/nota/domain/use_case/tags/GetTags.kt
+rename from app/src/main/java/com/A_23_59/hypernote/domain/use_case/tags/GetTags.kt
+rename to app/src/main/java/com/golden_minute/nota/domain/use_case/tags/GetTags.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/domain/use_case/tags/GetTags.kt	
++++ b/app/src/main/java/com/golden_minute/nota/domain/use_case/tags/GetTags.kt	
+@@ -1,7 +1,7 @@
+-package com.A_23_59.hypernote.domain.use_case.tags
++package com.golden_minute.nota.domain.use_case.tags
+ 
+-import com.A_23_59.hypernote.data.data_source.TagDao
+-import com.A_23_59.hypernote.domain.model.Tag
++import com.golden_minute.nota.data.data_source.TagDao
++import com.golden_minute.nota.domain.model.Tag
+ import kotlinx.coroutines.flow.Flow
+ 
+ class GetTags(private val tagDao: TagDao) {
+Index: app/src/main/res/values-fa-rIR/strings.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<resources>\r\n    <string name=\"txt_theme\">پوسته :</string>\r\n    <string name=\"txt_language\">زبان :</string>\r\n    <string name=\"txt_welcome\">به نوتا خوش آمدید</string>\r\n    <string name=\"txt_light\">روشن</string>\r\n    <string name=\"txt_dark\">تیره</string>\r\n    <string name=\"txt_confirm\">شروع به کار</string>\r\n    <string name=\"txt_main_tasks\">کارها</string>\r\n    <string name=\"txt_main_notes\">یادداشت ها</string>\r\n    <string name=\"txt_main_sort_as\">مرتب سازی بر اساس :</string>\r\n    <string name=\"txt_main_search\">جستجو...</string>\r\n    <string name=\"txt_main_items_selected\">انتخاب شده</string>\r\n    <string name=\"txt_main_ascending\">صعودی</string>\r\n    <string name=\"txt_main_descending\">نزولی</string>\r\n    <string name=\"txt_main_importance\">اولویت</string>\r\n    <string name=\"txt_completed_tasks\">انجام شده ها</string>\r\n    <string name=\"txt_undone\">ناتمام ها</string>\r\n    <string name=\"txt_main_tags\">برچسب ها…</string>\r\n    <string name=\"txt_main_date\"> زمان انجام</string>\r\n    <string name=\"sort_as\">مرتب کردن بر اساس :</string>\r\n    <string name=\"add_new_task\">افزودن کار</string>\r\n    <string name=\"add_new_note\">افزودن یادداشت</string>\r\n    <string name=\"add_to_the_tasks\">افزودن به کارها</string>\r\n    <string name=\"add_to_the_notes\">افزودن به یادداشت ها</string>\r\n    <string name=\"edit_the_task\">ویرایش کار</string>\r\n    <string name=\"edit_the_note\">ویرایش یادداشت</string>\r\n    <string name=\"adding_task\">اضافه کردن کار</string>\r\n    <string name=\"adding_note\">اضافه کردن یادداشت</string>\r\n    <string name=\"editing_task\">ویرایش کردن کار</string>\r\n    <string name=\"editing_note\">ویرایش کردن یادداشت</string>\r\n    <string name=\"text_field_title\">عنوان</string>\r\n    <string name=\"level_of_importance\">درجه اهمیت  :</string>\r\n    <string name=\"low\">کم</string>\r\n    <string name=\"medium\">متوسط</string>\r\n    <string name=\"high\">زیاد</string>\r\n    <string name=\"task_type\">نوع کار :</string>\r\n    <string name=\"tags\">برچسب ها :</string>\r\n    <string name=\"repeat\">تکرار</string>\r\n    <string name=\"due_date\">\"زمان انجام : \"</string>\r\n    <string name=\"due_date_add_screen\">\"زمان انجام\"</string>\r\n    <string name=\"textfield_description\">توضیحات</string>\r\n    <string name=\"textfield_description_optional\">توضیحات\" \"(اختیاری)</string>\r\n    <string name=\"creation_date_task\">زمان ایجاد کار :</string>\r\n    <string name=\"creation_date_note\">زمان ایجاد یادداشت :</string>\r\n    <string name=\"task_due_date\">زمان انجام کار :</string>\r\n    <string name=\"due_time\">ساعت انجام :</string>\r\n    <string name=\"choose_date_and_time\">انتخاب تاریخ و ساعت</string>\r\n    <string name=\"at\">در</string>\r\n    <string name=\"date\">تاریخ :</string>\r\n    <string name=\"year\">سال</string>\r\n    <string name=\"month\">ماه</string>\r\n    <string name=\"day\">روز</string>\r\n    <string name=\"time\">\"ساعت :\"</string>\r\n    <string name=\"hour\">ساعت</string>\r\n    <string name=\"minute\">دقیقه</string>\r\n    <string name=\"set_time_and_date\">تنظیم تاریخ و ساعت</string>\r\n    <string name=\"invalid_input\">ورودی نامعتبر</string>\r\n    <string name=\"day_before_today\">مقدار روز وارد شده قبل از امروز است</string>\r\n    <string name=\"month_before_this_month\">مقدار ماه وارد شده قبل از ماه جاری است</string>\r\n    <string name=\"year_before_this_year\">مقدار سال وارد شده قبل از سال جاری است</string>\r\n    <string name=\"the_date_entered_is_before_today_s_date\">تاریخ وارد شده قبل از تاریخ امروز است</string>\r\n    <string name=\"today\">امروز</string>\r\n    <string name=\"tomorrow\">فردا</string>\r\n    <string name=\"after_tomorrow\">پس فردا</string>\r\n    <string name=\"date_templates\">زمان های آماده</string>\r\n    <string name=\"predefined\">تعریف شده</string>\r\n    <string name=\"custom\">دستی</string>\r\n    <string name=\"choose\">انتخاب کنید</string>\r\n    <string name=\"up_to_three_tags\">حداکثر تا سه برچسب</string>\r\n    <string name=\"tag_name\">نام برچسب </string>\r\n    <string name=\"note\">یادداشت</string>\r\n    <string name=\"task\">کار</string>\r\n    <string name=\"have_reminder\">یادآور داشته باشد</string>\r\n    <string name=\"has_reminder\">یادآور دارد</string>\r\n    <string name=\"daily\">روزانه</string>\r\n    <string name=\"weekly\">هفتگی</string>\r\n    <string name=\"monthly\">ماهانه</string>\r\n    <string name=\"yearly\">سالانه</string>\r\n    <string name=\"settings\">تنظیمات</string>\r\n    <string name=\"filter_tags\">فیلتر کردن برچسب ها</string>\r\n    <string name=\"task_list_is_empty\">لیست کارها خالی است !</string>\r\n    <string name=\"note_list_is_empty\">لیست یادداشت ها خالی است !</string>\r\n\r\n</resources>
+===================================================================
+diff --git a/app/src/main/res/values-fa-rIR/strings.xml b/app/src/main/res/values-fa-rIR/strings.xml
+--- a/app/src/main/res/values-fa-rIR/strings.xml	
++++ b/app/src/main/res/values-fa-rIR/strings.xml	
+@@ -2,7 +2,8 @@
+ <resources>
+     <string name="txt_theme">پوسته :</string>
+     <string name="txt_language">زبان :</string>
+-    <string name="txt_welcome">به نوتا خوش آمدید</string>
++    <string name="txt_welcome">ساده، اما قدرتمند</string>
++    <string name="txt_welcome_description">با نوتا دیگر از استرس فراموشی خلاص شده و جریان افکارتان را ساده تر و سریع تر از قبل سازمان دهی کنید</string>
+     <string name="txt_light">روشن</string>
+     <string name="txt_dark">تیره</string>
+     <string name="txt_confirm">شروع به کار</string>
+@@ -13,7 +14,7 @@
+     <string name="txt_main_items_selected">انتخاب شده</string>
+     <string name="txt_main_ascending">صعودی</string>
+     <string name="txt_main_descending">نزولی</string>
+-    <string name="txt_main_importance">اولویت</string>
++    <string name="priority">اولویت</string>
+     <string name="txt_completed_tasks">انجام شده ها</string>
+     <string name="txt_undone">ناتمام ها</string>
+     <string name="txt_main_tags">برچسب ها…</string>
+@@ -79,7 +80,17 @@
+     <string name="yearly">سالانه</string>
+     <string name="settings">تنظیمات</string>
+     <string name="filter_tags">فیلتر کردن برچسب ها</string>
+-    <string name="task_list_is_empty">لیست کارها خالی است !</string>
+-    <string name="note_list_is_empty">لیست یادداشت ها خالی است !</string>
++    <string name="task_list_is_empty">فعلا کاری نیست!</string>
++    <string name="note_list_is_empty">فعلا یادداشتی نیست!</string>
++    <string name="the_title_is_empty">عنوان خالی است</string>
++    <string name="the_description_is_empty">توضیحات خالی است</string>
++    <string name="tag_s_list_is_empty">لیست برچسب ها خالی است !</string>
++    <string name="delete_tags">حذف برچسب ها</string>
++    <string name="creation_date">تاریخ ایجاد</string>
++    <string name="choose_time">انتخاب ساعت</string>
++    <string name="dismiss">برگشت</string>
++    <string name="OK">تنظیم ساعت</string>
++    <string name="time_or_date_is_before_current_time">تاریخ یا ساعت وارد شده قدیمی است</string>
++
+ 
+ </resources>
+\ No newline at end of file
+Index: gradle/libs.versions.toml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>[versions]\r\naccompanistPager = \"0.34.0\"\r\nkotlin = \"2.0.0\"\r\nactivityCompose = \"1.9.0\"\r\nappcompat = \"1.7.0-rc01\"\r\ncapturable = \"2.1.0\"\r\ncoreKtx = \"1.13.1\"\r\ncoreSplashscreen = \"1.0.1\"\r\ndatastorePreferences = \"1.1.1\"\r\nespressoCore = \"3.5.1\"\r\nhiltAndroid = \"2.51.1\"\r\nhiltNavigationCompose = \"1.2.0\"\r\njunit = \"4.13.2\"\r\njunitVersion = \"1.1.5\"\r\nkotlinxCoroutinesAndroid = \"1.8.1\"\r\nkotlinxSerializationJson = \"1.6.3\"\r\nlifecycleViewmodelCompose = \"2.8.0\"\r\nmaterial = \"1.6.7\"\r\nmaterial3 = \"1.2.1\"\r\nnavigationCompose = \"2.7.7\"\r\nroomCompiler = \"2.6.1\"\r\nui = \"1.6.7\"\r\n\r\n[libraries]\r\naccompanist-pager = { module = \"com.google.accompanist:accompanist-pager\", version.ref = \"accompanistPager\" }\r\naccompanist-pager-indicators = { module = \"com.google.accompanist:accompanist-pager-indicators\", version.ref = \"accompanistPager\" }\r\nandroidx-activity-compose = { module = \"androidx.activity:activity-compose\", version.ref = \"activityCompose\" }\r\nandroidx-appcompat = { module = \"androidx.appcompat:appcompat\", version.ref = \"appcompat\" }\r\nandroidx-appcompat-resources = { module = \"androidx.appcompat:appcompat-resources\", version.ref = \"appcompat\" }\r\nandroidx-core-ktx = { module = \"androidx.core:core-ktx\", version.ref = \"coreKtx\" }\r\nandroidx-core-splashscreen = { module = \"androidx.core:core-splashscreen\", version.ref = \"coreSplashscreen\" }\r\nandroidx-datastore-preferences = { module = \"androidx.datastore:datastore-preferences\", version.ref = \"datastorePreferences\" }\r\nandroidx-espresso-core = { module = \"androidx.test.espresso:espresso-core\", version.ref = \"espressoCore\" }\r\nandroidx-hilt-navigation-compose = { module = \"androidx.hilt:hilt-navigation-compose\", version.ref = \"hiltNavigationCompose\" }\r\nandroidx-junit = { module = \"androidx.test.ext:junit\", version.ref = \"junitVersion\" }\r\nandroidx-lifecycle-runtime-ktx = { module = \"androidx.lifecycle:lifecycle-runtime-ktx\", version.ref = \"lifecycleViewmodelCompose\" }\r\nandroidx-lifecycle-viewmodel-compose = { module = \"androidx.lifecycle:lifecycle-viewmodel-compose\", version.ref = \"lifecycleViewmodelCompose\" }\r\nandroidx-material = { module = \"androidx.compose.material:material\", version.ref = \"material\" }\r\nandroidx-material3 = { module = \"androidx.compose.material3:material3\", version.ref = \"material3\" }\r\nandroidx-navigation-compose = { module = \"androidx.navigation:navigation-compose\", version.ref = \"navigationCompose\" }\r\nandroidx-room-compiler = { module = \"androidx.room:room-compiler\", version.ref = \"roomCompiler\" }\r\nandroidx-room-ktx = { module = \"androidx.room:room-ktx\", version.ref = \"roomCompiler\" }\r\nandroidx-room-runtime = { module = \"androidx.room:room-runtime\", version.ref = \"roomCompiler\" }\r\nandroidx-ui = { module = \"androidx.compose.ui:ui\", version.ref = \"ui\" }\r\nandroidx-ui-test-junit4 = { module = \"androidx.compose.ui:ui-test-junit4\", version.ref = \"ui\" }\r\nandroidx-ui-test-manifest = { module = \"androidx.compose.ui:ui-test-manifest\", version.ref = \"ui\" }\r\nandroidx-ui-tooling = { module = \"androidx.compose.ui:ui-tooling\", version.ref = \"ui\" }\r\nandroidx-ui-tooling-preview = { module = \"androidx.compose.ui:ui-tooling-preview\", version.ref = \"ui\" }\r\ncapturable = { module = \"dev.shreyaspatil:capturable\", version.ref = \"capturable\" }\r\nhilt-android = { module = \"com.google.dagger:hilt-android\", version.ref = \"hiltAndroid\" }\r\nhilt-compiler = { module = \"com.google.dagger:hilt-compiler\", version.ref = \"hiltAndroid\" }\r\njunit = { module = \"junit:junit\", version.ref = \"junit\" }\r\nkotlinx-coroutines-android = { module = \"org.jetbrains.kotlinx:kotlinx-coroutines-android\", version.ref = \"kotlinxCoroutinesAndroid\" }\r\nkotlinx-serialization-json = { module = \"org.jetbrains.kotlinx:kotlinx-serialization-json\", version.ref = \"kotlinxSerializationJson\" }\r\n\r\n[plugins]\r\norg-jetbrains-kotlin-android = { id = \"org.jetbrains.kotlin.android\", version.ref = \"kotlin\" }\r\ncompose-compiler = { id = \"org.jetbrains.kotlin.plugin.compose\", version.ref = \"kotlin\" }
+===================================================================
+diff --git a/gradle/libs.versions.toml b/gradle/libs.versions.toml
+--- a/gradle/libs.versions.toml	
++++ b/gradle/libs.versions.toml	
+@@ -1,25 +1,28 @@
+ [versions]
+ accompanistPager = "0.34.0"
++constraintlayoutComposeVersion = "1.1.0-alpha14"
++haze = "0.7.3"
+ kotlin = "2.0.0"
+-activityCompose = "1.9.0"
+-appcompat = "1.7.0-rc01"
++activityCompose = "1.9.1"
++appcompat = "1.7.0"
+ capturable = "2.1.0"
+ coreKtx = "1.13.1"
+ coreSplashscreen = "1.0.1"
+ datastorePreferences = "1.1.1"
+-espressoCore = "3.5.1"
+-hiltAndroid = "2.51.1"
++espressoCore = "3.6.1"
++hiltAndroid = "2.52"
+ hiltNavigationCompose = "1.2.0"
+ junit = "4.13.2"
+-junitVersion = "1.1.5"
++junitVersion = "1.2.1"
+ kotlinxCoroutinesAndroid = "1.8.1"
+-kotlinxSerializationJson = "1.6.3"
+-lifecycleViewmodelCompose = "2.8.0"
+-material = "1.6.7"
++kotlinxSerializationJson = "1.7.2"
++lifecycleViewmodelCompose = "2.8.4"
++material = "1.6.8"
+ material3 = "1.2.1"
+ navigationCompose = "2.7.7"
+ roomCompiler = "2.6.1"
+-ui = "1.6.7"
++ui = "1.6.8"
++workRuntimeKtx = "2.9.1"
+ 
+ [libraries]
+ accompanist-pager = { module = "com.google.accompanist:accompanist-pager", version.ref = "accompanistPager" }
+@@ -46,7 +49,10 @@
+ androidx-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "ui" }
+ androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "ui" }
+ androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "ui" }
++androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workRuntimeKtx" }
+ capturable = { module = "dev.shreyaspatil:capturable", version.ref = "capturable" }
++constraintlayout-compose = { module = "androidx.constraintlayout:constraintlayout-compose", version.ref = "constraintlayoutComposeVersion" }
++haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
+ hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
+ hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hiltAndroid" }
+ junit = { module = "junit:junit", version.ref = "junit" }
+Index: app/src/main/java/com/A_23_59/hypernote/domain/util/Add_Edit_State.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/domain/util/Add_Edit_State.kt b/app/src/main/java/com/golden_minute/nota/domain/util/Add_Edit_State.kt
+rename from app/src/main/java/com/A_23_59/hypernote/domain/util/Add_Edit_State.kt
+rename to app/src/main/java/com/golden_minute/nota/domain/util/Add_Edit_State.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/domain/util/Add_Edit_State.kt	
++++ b/app/src/main/java/com/golden_minute/nota/domain/util/Add_Edit_State.kt	
+@@ -1,15 +1,15 @@
+-package com.A_23_59.hypernote.domain.util
++package com.golden_minute.nota.domain.util
+ 
+-import com.A_23_59.hypernote.domain.model.Priority
++import com.golden_minute.nota.domain.model.Priority
+ 
+ data class Add_Edit_State(
+     val title: String = "",
+     val description: String = "",
+     val taskPriority: Priority = Priority.LOW,
+-    val dateAndTime: String = "",
++    val dueDate: String = "",
+     val repeatTime: String = "",
+     val itHasReminder: Boolean = false,
+-    val tagNumber1 : String = "",
+-    val tagNumber2 : String = "",
++    val tagNumber1 : String ="",
++    val tagNumber2 : String ="",
+     val tagNumber3 : String = "",
+ )
+Index: app/src/main/java/com/A_23_59/hypernote/domain/util/TaskOrderType.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/domain/util/TaskOrderType.kt b/app/src/main/java/com/golden_minute/nota/domain/util/TaskOrderType.kt
+rename from app/src/main/java/com/A_23_59/hypernote/domain/util/TaskOrderType.kt
+rename to app/src/main/java/com/golden_minute/nota/domain/util/TaskOrderType.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/domain/util/TaskOrderType.kt	
++++ b/app/src/main/java/com/golden_minute/nota/domain/util/TaskOrderType.kt	
+@@ -1,14 +1,12 @@
+-package com.A_23_59.hypernote.domain.util
+-
+-import com.A_23_59.hypernote.domain.model.Task
++package com.golden_minute.nota.domain.util
+ 
+ sealed class TaskOrderType {
+ 
+     data object Ascending : TaskOrderType()
+     data object Descending : TaskOrderType()
+-    data class Tags(val tags: List<String>) : TaskOrderType()
+     data object DueDate:TaskOrderType()
+     data object Priority:TaskOrderType()
+     data object Completed:TaskOrderType()
+     data object Undone:TaskOrderType()
++    data object Default :TaskOrderType()
+ }
+\ No newline at end of file
+Index: app/src/main/java/com/A_23_59/hypernote/presentation/EmptyStateScreen.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/presentation/EmptyStateScreen.kt b/app/src/main/java/com/golden_minute/nota/presentation/EmptyStateScreen.kt
+rename from app/src/main/java/com/A_23_59/hypernote/presentation/EmptyStateScreen.kt
+rename to app/src/main/java/com/golden_minute/nota/presentation/EmptyStateScreen.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/presentation/EmptyStateScreen.kt	
++++ b/app/src/main/java/com/golden_minute/nota/presentation/EmptyStateScreen.kt	
+@@ -1,6 +1,5 @@
+-package com.A_23_59.hypernote.presentation
++package com.golden_minute.nota.presentation
+ 
+-import androidx.compose.foundation.Image
+ import androidx.compose.foundation.layout.Arrangement
+ import androidx.compose.foundation.layout.Column
+ import androidx.compose.foundation.layout.Spacer
+@@ -18,8 +17,8 @@
+ import androidx.compose.ui.res.stringResource
+ import androidx.compose.ui.tooling.preview.Preview
+ import androidx.compose.ui.unit.dp
+-import com.A_23_59.hypernote.R
+-import com.A_23_59.hypernote.ui.theme.iranYekan
++import com.golden_minute.nota.R
++import com.golden_minute.nota.ui.theme.iranYekan
+ 
+ @Composable
+ fun EmptyState() {
+Index: app/src/main/java/com/A_23_59/hypernote/domain/util/TasksState.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/domain/util/TasksState.kt b/app/src/main/java/com/golden_minute/nota/domain/util/TasksState.kt
+rename from app/src/main/java/com/A_23_59/hypernote/domain/util/TasksState.kt
+rename to app/src/main/java/com/golden_minute/nota/domain/util/TasksState.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/domain/util/TasksState.kt	
++++ b/app/src/main/java/com/golden_minute/nota/domain/util/TasksState.kt	
+@@ -1,7 +1,6 @@
+-package com.A_23_59.hypernote.domain.util
++package com.golden_minute.nota.domain.util
+ 
+-import com.A_23_59.hypernote.domain.model.Tag
+-import com.A_23_59.hypernote.domain.model.Task
++import com.golden_minute.nota.domain.model.Task
+ 
+ 
+ data class TasksState(
+Index: app/src/main/java/com/A_23_59/hypernote/presentation/SettingScreen.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/presentation/SettingScreen.kt b/app/src/main/java/com/golden_minute/nota/presentation/SettingScreen.kt
+rename from app/src/main/java/com/A_23_59/hypernote/presentation/SettingScreen.kt
+rename to app/src/main/java/com/golden_minute/nota/presentation/SettingScreen.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/presentation/SettingScreen.kt	
++++ b/app/src/main/java/com/golden_minute/nota/presentation/SettingScreen.kt	
+@@ -1,6 +1,5 @@
+-package com.A_23_59.hypernote.presentation
++package com.golden_minute.nota.presentation
+ 
+-import android.content.res.Configuration.UI_MODE_NIGHT_YES
+ import androidx.compose.animation.animateColorAsState
+ import androidx.compose.foundation.layout.Arrangement
+ import androidx.compose.foundation.layout.Column
+@@ -21,30 +20,46 @@
+ import androidx.compose.material.Text
+ import androidx.compose.material.TopAppBar
+ import androidx.compose.material.icons.Icons
+-import androidx.compose.material.icons.filled.ArrowBack
+-import androidx.compose.material.icons.filled.ArrowForward
++import androidx.compose.material.icons.automirrored.filled.ArrowBack
+ import androidx.compose.runtime.Composable
+ import androidx.compose.runtime.getValue
++import androidx.compose.runtime.mutableStateOf
++import androidx.compose.runtime.rememberCoroutineScope
++import androidx.compose.runtime.saveable.rememberSaveable
++import androidx.compose.runtime.setValue
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.graphics.Color
+ import androidx.compose.ui.res.stringResource
+ import androidx.compose.ui.text.font.FontWeight
+-import androidx.compose.ui.tooling.preview.Preview
+ import androidx.compose.ui.unit.dp
+ import androidx.navigation.NavController
+-import androidx.navigation.compose.rememberNavController
+-import com.A_23_59.hypernote.R
+-import com.A_23_59.hypernote.ui.theme.NotaTheme
++import com.golden_minute.nota.R
++import com.golden_minute.nota.data.data_source.SettingsDataStore
++import com.golden_minute.nota.ui.theme.NotaTheme
++import kotlinx.coroutines.launch
+ 
+ 
+ @Composable
+-fun SettingsScreen(navController: NavController) {
++fun SettingsScreen(
++    navController: NavController,
++    activityViewModel: MainActivityViewModel,
++    settingsDataStore: SettingsDataStore
++) {
++
++    val coroutineScope = rememberCoroutineScope()
+ 
+-    val darkIsSelected by animateColorAsState(targetValue = if (themeIsDark) MaterialTheme.colors.primary else Color.Gray)
+-    val lightIsSelected by animateColorAsState(targetValue = if (!themeIsDark) MaterialTheme.colors.primary else Color.Gray)
++    var locale by rememberSaveable {
++        mutableStateOf(activityViewModel.languageData.value)
++    }
++    var appThemeIsDark by rememberSaveable {
++        mutableStateOf(activityViewModel.themeData.value)
++    }
+ 
+-    NotaTheme(darkTheme = themeIsDark) {
++    val darkIsSelected by animateColorAsState(targetValue = if (appThemeIsDark) MaterialTheme.colors.primary else Color.Gray)
++    val lightIsSelected by animateColorAsState(targetValue = if (!appThemeIsDark) MaterialTheme.colors.primary else Color.Gray)
++
++    NotaTheme(darkTheme = appThemeIsDark) {
+         Surface(Modifier.fillMaxSize()) {
+             Column(Modifier.fillMaxSize()) {
+                 TopAppBar(
+@@ -56,11 +71,11 @@
+                         )
+                     },
+                     backgroundColor = MaterialTheme.colors.surface,
+-                    elevation = if (themeIsDark) 0.dp else 10.dp,
++                    elevation = if (appThemeIsDark) 0.dp else 10.dp,
+                     navigationIcon = {
+                         IconButton(onClick = { navController.popBackStack() }) {
+                             Icon(
+-                                imageVector = if (selectedLocale == "en") Icons.Default.ArrowBack else Icons.Default.ArrowForward,
++                                imageVector =  Icons.AutoMirrored.Filled.ArrowBack,
+                                 tint = MaterialTheme.colors.primaryVariant,
+                                 contentDescription = "back"
+                             )
+@@ -87,7 +102,12 @@
+                     )
+                     Button(
+                         colors = ButtonDefaults.buttonColors(backgroundColor = lightIsSelected),
+-                        onClick = { themeIsDark = false },
++                        onClick = {
++                            appThemeIsDark = false
++                            coroutineScope.launch {
++                                settingsDataStore.saveTheme(appThemeIsDark)
++                            }
++                        },
+                         modifier = Modifier
+                             .weight(1f)
+                             .padding(end = 16.dp)
+@@ -103,7 +123,12 @@
+                     }
+                     Button(
+                         colors = ButtonDefaults.buttonColors(backgroundColor = darkIsSelected),
+-                        onClick = { themeIsDark = true },
++                        onClick = {
++                            appThemeIsDark = true
++                            coroutineScope.launch {
++                                settingsDataStore.saveTheme(appThemeIsDark)
++                            }
++                        },
+                         modifier = Modifier
+                             .weight(1f)
+                             .padding(end = 16.dp)
+@@ -112,13 +137,11 @@
+                     ) {
+                         Text(
+                             text = stringResource(id = R.string.txt_dark),
+-                           color =  Color.White,
++                            color = Color.White,
+                             style = MaterialTheme.typography.body1,
+                             modifier = Modifier.padding(horizontal = 5.dp)
+                         )
+                     }
+-
+-
+                 }
+                 Divider(
+                     Modifier
+@@ -147,7 +170,11 @@
+                     Button(
+                         colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
+                         onClick = {
+-                            selectedLocale = if (selectedLocale == "fa-ir") "en" else "fa-ir"
++                            coroutineScope.launch {
++                                locale = if (locale == "fa-ir") "en" else "fa-ir"
++                                settingsDataStore.saveLanguage(locale)
++                            }
++
+                         },
+                         modifier = Modifier
+                             .weight(1f)
+@@ -155,14 +182,12 @@
+                         shape = RoundedCornerShape(12.dp)
+                     ) {
+                         Text(
+-                            text = if (selectedLocale == "fa-ir") "فارسی" else "English",
++                            text = if (locale == "fa-ir") "فارسی" else "English",
+                             color = Color.White,
+                             style = MaterialTheme.typography.body1,
+                             modifier = Modifier.padding(horizontal = 5.dp)
+                         )
+                     }
+-
+-
+                 }
+                 Divider(
+                     Modifier
+@@ -172,12 +197,5 @@
+             }
+         }
+     }
+-
+-}
+-
+-@Preview(showBackground = true, showSystemUi = true, uiMode = UI_MODE_NIGHT_YES)
+-@Composable
+-fun SettingsScreenPreview() {
+-    SettingsScreen(navController = rememberNavController())
+ }
+ 
+Index: app/src/main/java/com/A_23_59/hypernote/domain/util/NotesState.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/domain/util/NotesState.kt b/app/src/main/java/com/golden_minute/nota/domain/util/NotesState.kt
+rename from app/src/main/java/com/A_23_59/hypernote/domain/util/NotesState.kt
+rename to app/src/main/java/com/golden_minute/nota/domain/util/NotesState.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/domain/util/NotesState.kt	
++++ b/app/src/main/java/com/golden_minute/nota/domain/util/NotesState.kt	
+@@ -1,13 +1,12 @@
+-package com.A_23_59.hypernote.domain.util
++package com.golden_minute.nota.domain.util
+ 
+-import com.A_23_59.hypernote.domain.model.Note
+-import com.A_23_59.hypernote.domain.model.Tag
++import com.golden_minute.nota.domain.model.Note
++import com.golden_minute.nota.domain.model.Tag
+ 
+ 
+ data class NotesState(
+     val notes: List<Note> = emptyList(),
+     val notesTagsList : List<Tag> = emptyList(),
+-    val searchBarValue : String ="",
+     val noteOrder: NoteOrderType = NoteOrderType.Descending,
+     val isToolbarActionVisible: Boolean = false,
+     val isSearchbarVisible: Boolean = false,
+Index: app/src/main/java/com/A_23_59/hypernote/presentation/RepeatDialog.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/presentation/RepeatDialog.kt b/app/src/main/java/com/golden_minute/nota/presentation/RepeatDialog.kt
+rename from app/src/main/java/com/A_23_59/hypernote/presentation/RepeatDialog.kt
+rename to app/src/main/java/com/golden_minute/nota/presentation/RepeatDialog.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/presentation/RepeatDialog.kt	
++++ b/app/src/main/java/com/golden_minute/nota/presentation/RepeatDialog.kt	
+@@ -1,4 +1,4 @@
+-package com.A_23_59.hypernote.presentation
++package com.golden_minute.nota.presentation
+ 
+ import android.annotation.SuppressLint
+ import androidx.compose.foundation.clickable
+@@ -8,15 +8,12 @@
+ import androidx.compose.foundation.layout.fillMaxWidth
+ import androidx.compose.foundation.layout.padding
+ import androidx.compose.foundation.shape.RoundedCornerShape
+-import androidx.compose.material3.Divider
++import androidx.compose.material3.HorizontalDivider
+ import androidx.compose.material3.MaterialTheme
+ import androidx.compose.material3.Surface
+ import androidx.compose.material3.Text
+ import androidx.compose.runtime.Composable
+-import androidx.compose.runtime.getValue
+-import androidx.compose.runtime.mutableStateOf
+ import androidx.compose.runtime.rememberCoroutineScope
+-import androidx.compose.runtime.setValue
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.res.stringResource
+@@ -24,21 +21,23 @@
+ import androidx.compose.ui.tooling.preview.Preview
+ import androidx.compose.ui.unit.dp
+ import androidx.compose.ui.window.Dialog
+-import com.A_23_59.hypernote.R
+-import com.A_23_59.hypernote.ui.theme.iranYekan
+-
++import androidx.hilt.navigation.compose.hiltViewModel
++import com.golden_minute.nota.R
++import com.golden_minute.nota.domain.util.Add_Edit_Events
++import com.golden_minute.nota.domain.util.ChooseDateTimeDialogEvents
++import com.golden_minute.nota.ui.theme.iranYekan
+ import kotlinx.coroutines.delay
+ import kotlinx.coroutines.launch
+ import java.util.Calendar
+ 
+-var selectedRepeatTaskOption by mutableStateOf("")
++
+ 
+-var showRepeatDialog by mutableStateOf(false)
++
+ 
+ @SuppressLint("SuspiciousIndentation")
+ 
+ @Composable
+-fun RepeatTaskDialog() {
++fun RepeatTaskDialog(viewModel: Add_EditScreenViewModel = hiltViewModel()) {
+ 
+     val repeatOptions = listOf(
+         stringResource(R.string.daily),
+@@ -46,7 +45,7 @@
+         stringResource(R.string.yearly)
+     )
+ 
+-    Dialog(onDismissRequest = { showRepeatDialog = false }) {
++    Dialog(onDismissRequest = { viewModel.showRepeatDialog = false }) {
+         Surface(
+             shape = RoundedCornerShape(12.dp),
+             color = MaterialTheme.colorScheme.onSurface,
+@@ -66,23 +65,35 @@
+                         Modifier
+                             .fillMaxWidth()
+                             .clickable {
+-                                selectedRepeatTaskOption = option
++                                viewModel.selectedRepeatTaskOption = option
+                                 coroutine.launch {
+                                     delay(300)
+-                                    dayFromTextField = currentSystemDay.toString()
+-                                    monthFromTextField = currentSystemMonth.toString()
+-                                    yearFromTextField = currentSystemYear.toString()
+-                                    hourFromTextField = calendar
+-                                        .get(Calendar.HOUR_OF_DAY)
+-                                        .toString()
+-                                    minuteFromTextField = calendar
+-                                        .get(Calendar.MINUTE)
+-                                        .toString()
++                                    viewModel.dialogEvents(
++                                        ChooseDateTimeDialogEvents.EnteredDay(
++                                            currentSystemDay.toString()
++                                        )
++                                    )
++                                    viewModel.dialogEvents(
++                                        ChooseDateTimeDialogEvents.EnteredMonth(
++                                            currentSystemMonth.toString()
++                                        )
++                                    )
++                                    viewModel.dialogEvents(
++                                        ChooseDateTimeDialogEvents.EnteredYear(
++                                            currentSystemYear.toString()
++                                        )
++                                    )
++                                    //TODO add events for repeating periods
+ 
+-                                    txtShowDateAndTime =
+-                                        " $dayFromTextField/$monthFromTextField/$yearFromTextField \n $hourFromTextField:$minuteFromTextField "
+-                                    dueDateHasBeenSet = true
+-                                    showRepeatDialog = false
++//                                    txtShowDateAndTime =
++//                                        " $dayFromTextField/$monthFromTextField/$yearFromTextField \n $hourFromTextField:$minuteFromTextField "
++                                    viewModel.dialogEvents(
++                                        ChooseDateTimeDialogEvents.ToggleDueDate(
++                                            true
++                                        )
++                                    )
++                                    viewModel.onEvent(Add_Edit_Events.EnteredRepeatDialog(option))
++                                    viewModel.showRepeatDialog = false
+                                 }
+ 
+                             }) {
+@@ -96,7 +107,7 @@
+ 
+                     }
+                     if (option != repeatOptions.last())
+-                        Divider(
++                        HorizontalDivider(
+                             Modifier.fillMaxWidth(),
+                             color = MaterialTheme.colorScheme.surface.copy(0.3f)
+                         )
+@@ -106,7 +117,6 @@
+     }
+ 
+ 
+-
+ }
+ 
+ @Preview(showBackground = true, showSystemUi = true)
+Index: app/src/main/java/com/A_23_59/hypernote/domain/use_case/tags/TagsUseCases.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/domain/use_case/tags/TagsUseCases.kt b/app/src/main/java/com/golden_minute/nota/domain/use_case/tags/TagsUseCases.kt
+rename from app/src/main/java/com/A_23_59/hypernote/domain/use_case/tags/TagsUseCases.kt
+rename to app/src/main/java/com/golden_minute/nota/domain/use_case/tags/TagsUseCases.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/domain/use_case/tags/TagsUseCases.kt	
++++ b/app/src/main/java/com/golden_minute/nota/domain/use_case/tags/TagsUseCases.kt	
+@@ -1,7 +1,9 @@
+-package com.A_23_59.hypernote.domain.use_case.tags
++package com.golden_minute.nota.domain.use_case.tags
+ 
+ data class TagsUseCases(
++    val addTag: AddTag,
+     val addTags: AddTags,
++    val deleteTag: DeleteTag,
+     val deleteTags: DeleteTags,
+     val updateTags: UpdateTags,
+     val getTags: GetTags
+Index: app/src/main/AndroidManifest.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\"\r\n    xmlns:tools=\"http://schemas.android.com/tools\">\r\n\r\n    <application\r\n        android:name=\".NotaApplication\"\r\n        android:allowBackup=\"true\"\r\n        android:hardwareAccelerated=\"true\"\r\n        android:dataExtractionRules=\"@xml/data_extraction_rules\"\r\n        android:fullBackupContent=\"@xml/backup_rules\"\r\n        android:icon=\"@mipmap/ic_launcher\"\r\n        android:label=\"@string/app_name\"\r\n        android:roundIcon=\"@mipmap/ic_launcher_round\"\r\n        android:supportsRtl=\"true\"\r\n        android:localeConfig=\"@xml/locales_config\"\r\n        android:theme=\"@style/Theme.AppCompat.NoActionBar\"\r\n        tools:targetApi=\"tiramisu\">\r\n        <service\r\n            android:name=\"androidx.appcompat.app.AppLocalesMetadataHolderService\"\r\n            android:enabled=\"false\"\r\n            android:exported=\"false\">\r\n            <meta-data\r\n                android:name=\"autoStoreLocales\"\r\n                android:value=\"true\" />\r\n        </service>\r\n        <activity\r\n            android:name=\".presentation.MainActivity\"\r\n            android:hardwareAccelerated=\"true\"\r\n            android:windowSoftInputMode=\"adjustResize\"\r\n            android:exported=\"true\"\r\n            android:theme=\"@style/Theme.HyperNote.MySplash\">\r\n            <intent-filter>\r\n                <action android:name=\"android.intent.action.MAIN\" />\r\n\r\n                <category android:name=\"android.intent.category.LAUNCHER\" />\r\n            </intent-filter>\r\n\r\n            <meta-data\r\n                android:name=\"android.app.lib_name\"\r\n                android:value=\"\" />\r\n\r\n        </activity>\r\n    </application>\r\n\r\n</manifest>
+===================================================================
+diff --git a/app/src/main/AndroidManifest.xml b/app/src/main/AndroidManifest.xml
+--- a/app/src/main/AndroidManifest.xml	
++++ b/app/src/main/AndroidManifest.xml	
+@@ -1,6 +1,12 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+-    xmlns:tools="http://schemas.android.com/tools">
++    xmlns:tools="http://schemas.android.com/tools"
++    android:installLocation="internalOnly"
++    package="com.golden_minute.nota">
++
++    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
++    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
++    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+ 
+     <application
+         android:name=".NotaApplication"
+@@ -15,6 +21,7 @@
+         android:localeConfig="@xml/locales_config"
+         android:theme="@style/Theme.AppCompat.NoActionBar"
+         tools:targetApi="tiramisu">
++
+         <service
+             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+             android:enabled="false"
+@@ -40,6 +47,21 @@
+                 android:value="" />
+ 
+         </activity>
++        <receiver android:name=".MRebootReceiver"
++            android:enabled="true"
++            android:exported="false">
++            <intent-filter>
++                <action android:name="android.intent.action.BOOT_COMPLETED" />
++            </intent-filter>
++        </receiver>
++        <receiver android:name=".data.Alarm_manager.AlarmReceiver"/>
++        <receiver android:name=".TimeChangeReceiver"
++            android:exported="false">
++            <intent-filter>
++                <action android:name="android.intent.action.TIME_SET" />
++            </intent-filter>
++
++        </receiver>
+     </application>
+ 
+ </manifest>
+\ No newline at end of file
+Index: .idea/inspectionProfiles/Project_Default.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><component name=\"InspectionProjectProfileManager\">\r\n  <profile version=\"1.0\">\r\n    <option name=\"myName\" value=\"Project Default\" />\r\n    <inspection_tool class=\"PreviewAnnotationInFunctionWithParameters\" enabled=\"true\" level=\"ERROR\" enabled_by_default=\"true\">\r\n      <option name=\"composableFile\" value=\"true\" />\r\n      <option name=\"previewFile\" value=\"true\" />\r\n    </inspection_tool>\r\n    <inspection_tool class=\"PreviewApiLevelMustBeValid\" enabled=\"true\" level=\"ERROR\" enabled_by_default=\"true\">\r\n      <option name=\"composableFile\" value=\"true\" />\r\n      <option name=\"previewFile\" value=\"true\" />\r\n    </inspection_tool>\r\n    <inspection_tool class=\"PreviewDimensionRespectsLimit\" enabled=\"true\" level=\"WARNING\" enabled_by_default=\"true\">\r\n      <option name=\"composableFile\" value=\"true\" />\r\n      <option name=\"previewFile\" value=\"true\" />\r\n    </inspection_tool>\r\n    <inspection_tool class=\"PreviewFontScaleMustBeGreaterThanZero\" enabled=\"true\" level=\"ERROR\" enabled_by_default=\"true\">\r\n      <option name=\"composableFile\" value=\"true\" />\r\n      <option name=\"previewFile\" value=\"true\" />\r\n    </inspection_tool>\r\n    <inspection_tool class=\"PreviewMultipleParameterProviders\" enabled=\"true\" level=\"ERROR\" enabled_by_default=\"true\">\r\n      <option name=\"composableFile\" value=\"true\" />\r\n      <option name=\"previewFile\" value=\"true\" />\r\n    </inspection_tool>\r\n    <inspection_tool class=\"PreviewMustBeTopLevelFunction\" enabled=\"true\" level=\"ERROR\" enabled_by_default=\"true\">\r\n      <option name=\"composableFile\" value=\"true\" />\r\n      <option name=\"previewFile\" value=\"true\" />\r\n    </inspection_tool>\r\n    <inspection_tool class=\"PreviewNeedsComposableAnnotation\" enabled=\"true\" level=\"ERROR\" enabled_by_default=\"true\">\r\n      <option name=\"composableFile\" value=\"true\" />\r\n      <option name=\"previewFile\" value=\"true\" />\r\n    </inspection_tool>\r\n    <inspection_tool class=\"PreviewNotSupportedInUnitTestFiles\" enabled=\"true\" level=\"ERROR\" enabled_by_default=\"true\">\r\n      <option name=\"composableFile\" value=\"true\" />\r\n      <option name=\"previewFile\" value=\"true\" />\r\n    </inspection_tool>\r\n    <inspection_tool class=\"PreviewPickerAnnotation\" enabled=\"true\" level=\"ERROR\" enabled_by_default=\"true\">\r\n      <option name=\"composableFile\" value=\"true\" />\r\n      <option name=\"previewFile\" value=\"true\" />\r\n    </inspection_tool>\r\n  </profile>\r\n</component>
+===================================================================
+diff --git a/.idea/inspectionProfiles/Project_Default.xml b/.idea/inspectionProfiles/Project_Default.xml
+--- a/.idea/inspectionProfiles/Project_Default.xml	
++++ b/.idea/inspectionProfiles/Project_Default.xml	
+@@ -1,6 +1,34 @@
+ <component name="InspectionProjectProfileManager">
+   <profile version="1.0">
+     <option name="myName" value="Project Default" />
++    <inspection_tool class="ComposePreviewDimensionRespectsLimit" enabled="true" level="WARNING" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++      <option name="previewFile" value="true" />
++    </inspection_tool>
++    <inspection_tool class="ComposePreviewMustBeTopLevelFunction" enabled="true" level="ERROR" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++      <option name="previewFile" value="true" />
++    </inspection_tool>
++    <inspection_tool class="ComposePreviewNeedsComposableAnnotation" enabled="true" level="ERROR" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++      <option name="previewFile" value="true" />
++    </inspection_tool>
++    <inspection_tool class="ComposePreviewNotSupportedInUnitTestFiles" enabled="true" level="ERROR" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++      <option name="previewFile" value="true" />
++    </inspection_tool>
++    <inspection_tool class="GlancePreviewDimensionRespectsLimit" enabled="true" level="WARNING" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++    </inspection_tool>
++    <inspection_tool class="GlancePreviewMustBeTopLevelFunction" enabled="true" level="ERROR" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++    </inspection_tool>
++    <inspection_tool class="GlancePreviewNeedsComposableAnnotation" enabled="true" level="ERROR" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++    </inspection_tool>
++    <inspection_tool class="GlancePreviewNotSupportedInUnitTestFiles" enabled="true" level="ERROR" enabled_by_default="true">
++      <option name="composableFile" value="true" />
++    </inspection_tool>
+     <inspection_tool class="PreviewAnnotationInFunctionWithParameters" enabled="true" level="ERROR" enabled_by_default="true">
+       <option name="composableFile" value="true" />
+       <option name="previewFile" value="true" />
+Index: app/src/main/java/com/A_23_59/hypernote/domain/model/Tag.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/domain/model/Tag.kt b/app/src/main/java/com/golden_minute/nota/domain/model/Tag.kt
+rename from app/src/main/java/com/A_23_59/hypernote/domain/model/Tag.kt
+rename to app/src/main/java/com/golden_minute/nota/domain/model/Tag.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/domain/model/Tag.kt	
++++ b/app/src/main/java/com/golden_minute/nota/domain/model/Tag.kt	
+@@ -1,13 +1,33 @@
+-package com.A_23_59.hypernote.domain.model
++package com.golden_minute.nota.domain.model
+ 
+-import android.os.Parcel
+-import android.os.Parcelable
+ import androidx.room.Entity
++import androidx.room.ForeignKey
++import androidx.room.Ignore
+ import androidx.room.PrimaryKey
+-@Entity(tableName = "tbl_tag")
++
++@Entity(
++    foreignKeys = [
++        ForeignKey(
++            entity = Task::class,
++            parentColumns = arrayOf("id"),
++            childColumns = arrayOf("taskID"),
++            onDelete = ForeignKey.CASCADE
++        ), ForeignKey(
++            entity =  Note::class,
++            parentColumns = arrayOf("id"),
++            childColumns = arrayOf("noteID"),
++            onDelete = ForeignKey.CASCADE,
++            deferred = true
++        )
++    ], tableName = "tbl_tag"
++)
+ data class Tag(
+     @PrimaryKey
+-    val id: Int? =null,
++    var id: Int? = null,
+     var tagName: String = "",
++    var tagNumber: Int = 0,
++    var taskID: Int? = null,
++    var noteID : Int? = null,
++    @Ignore
+     var isChecked: Boolean = false
+-)
+\ No newline at end of file
++)
+Index: app/src/main/java/com/A_23_59/hypernote/domain/use_case/notes/NoteUseCases.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/domain/use_case/notes/NoteUseCases.kt b/app/src/main/java/com/golden_minute/nota/domain/use_case/notes/NoteUseCases.kt
+rename from app/src/main/java/com/A_23_59/hypernote/domain/use_case/notes/NoteUseCases.kt
+rename to app/src/main/java/com/golden_minute/nota/domain/use_case/notes/NoteUseCases.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/domain/use_case/notes/NoteUseCases.kt	
++++ b/app/src/main/java/com/golden_minute/nota/domain/use_case/notes/NoteUseCases.kt	
+@@ -1,4 +1,4 @@
+-package com.A_23_59.hypernote.domain.use_case.notes
++package com.golden_minute.nota.domain.use_case.notes
+ 
+ /**
+  * this class is for wrap use cases into one class for cleaner access when get called in parameter
+@@ -6,7 +6,9 @@
+ data class NoteUseCases(
+     val getNotes: GetNotes,
+     val deleteNote: DeleteNote,
++    val deleteNotes: DeleteNotes,
+     val addNote: AddNote,
+     val getNote: GetNote,
++    val updateNote: UpdateNote,
+     val searchNote: SearchNote
+ )
+Index: app/src/main/java/com/A_23_59/hypernote/data/data_source/NoteDao.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/data/data_source/NoteDao.kt b/app/src/main/java/com/golden_minute/nota/data/data_source/NoteDao.kt
+rename from app/src/main/java/com/A_23_59/hypernote/data/data_source/NoteDao.kt
+rename to app/src/main/java/com/golden_minute/nota/data/data_source/NoteDao.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/data/data_source/NoteDao.kt	
++++ b/app/src/main/java/com/golden_minute/nota/data/data_source/NoteDao.kt	
+@@ -1,4 +1,4 @@
+-package com.A_23_59.hypernote.data.data_source
++package com.golden_minute.nota.data.data_source
+ 
+ import androidx.room.Dao
+ import androidx.room.Delete
+@@ -6,7 +6,7 @@
+ import androidx.room.OnConflictStrategy
+ import androidx.room.Query
+ import androidx.room.Update
+-import com.A_23_59.hypernote.domain.model.Note
++import com.golden_minute.nota.domain.model.Note
+ import kotlinx.coroutines.flow.Flow
+ 
+ 
+@@ -14,15 +14,12 @@
+ interface NoteDao {
+     @Query("SELECT * FROM tbl_note")
+     fun getAllNotes(): Flow<List<Note>>
+-    @Query("SELECT tagNumber1, tagNumber2, tagNumber3 FROM tbl_note")
+-    fun getAllTags(): Flow<List<String>>
+-
+ 
+     @Query("SELECT * FROM TBL_NOTE WHERE title || description LIKE '%' || :input || '%' ")
+     fun searchNote(input:String): Flow<List<Note>>
+ 
+     @Insert(onConflict = OnConflictStrategy.REPLACE)
+-    suspend fun addNote(note: Note)
++    suspend fun addNote(note: Note):Long
+ 
+     @Delete
+     suspend fun deleteAllNotes(notes: List<Note>)
+@@ -30,6 +27,9 @@
+     @Update
+     suspend fun updateNotes(notes: List<Note>)
+ 
++    @Update
++    suspend fun updateNote(note:Note)
++
+     @Delete
+     suspend fun deleteNote(note: Note)
+ 
+Index: app/src/main/java/com/A_23_59/hypernote/domain/model/Task.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/domain/model/Task.kt b/app/src/main/java/com/golden_minute/nota/domain/model/Task.kt
+rename from app/src/main/java/com/A_23_59/hypernote/domain/model/Task.kt
+rename to app/src/main/java/com/golden_minute/nota/domain/model/Task.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/domain/model/Task.kt	
++++ b/app/src/main/java/com/golden_minute/nota/domain/model/Task.kt	
+@@ -1,4 +1,4 @@
+-package com.A_23_59.hypernote.domain.model
++package com.golden_minute.nota.domain.model
+ 
+ import androidx.room.Entity
+ import androidx.room.PrimaryKey
+@@ -11,17 +11,14 @@
+     val title: String = "",
+     val description: String = "",
+     val priority: Priority = Priority.LOW,
+-    val tagNumber1: String? = null,
+-    val tagNumber2: String? = null,
+-    val tagNumber3: String? = null,
+-    val dueDate: Long? = null,
++    val dueDate: String? = null,
+     val repeatTime: String? = null,
+     var isChecked: Boolean? = false,
+     val hasReminder: Boolean = false
+ 
+ ) {
+     companion object {
+-        val timeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm")
++        val timeFormat: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+     }
+ }
+ 
+Index: gradle/wrapper/gradle-wrapper.properties
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>#Mon Mar 25 03:30:14 IRST 2024\r\ndistributionBase=GRADLE_USER_HOME\r\ndistributionPath=wrapper/dists\r\ndistributionUrl=https\\://services.gradle.org/distributions/gradle-8.7-bin.zip\r\nzipStoreBase=GRADLE_USER_HOME\r\nzipStorePath=wrapper/dists\r\n
+===================================================================
+diff --git a/gradle/wrapper/gradle-wrapper.properties b/gradle/wrapper/gradle-wrapper.properties
+--- a/gradle/wrapper/gradle-wrapper.properties	
++++ b/gradle/wrapper/gradle-wrapper.properties	
+@@ -1,6 +1,6 @@
+-#Mon Mar 25 03:30:14 IRST 2024
++#Sun Aug 18 02:34:04 IRST 2024
+ distributionBase=GRADLE_USER_HOME
+ distributionPath=wrapper/dists
+-distributionUrl=https\://services.gradle.org/distributions/gradle-8.7-bin.zip
++distributionUrl=https\://services.gradle.org/distributions/gradle-8.10-bin.zip
+ zipStoreBase=GRADLE_USER_HOME
+ zipStorePath=wrapper/dists
+Index: app/src/main/java/com/A_23_59/hypernote/ui/theme/Shape.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/ui/theme/Shape.kt b/app/src/main/java/com/golden_minute/nota/ui/theme/Shape.kt
+rename from app/src/main/java/com/A_23_59/hypernote/ui/theme/Shape.kt
+rename to app/src/main/java/com/golden_minute/nota/ui/theme/Shape.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/ui/theme/Shape.kt	
++++ b/app/src/main/java/com/golden_minute/nota/ui/theme/Shape.kt	
+@@ -1,4 +1,4 @@
+-package com.A_23_59.hypernote.ui.theme
++package com.golden_minute.nota.ui.theme
+ 
+ import androidx.compose.foundation.shape.RoundedCornerShape
+ import androidx.compose.material.Shapes
+Index: app/src/main/java/com/A_23_59/hypernote/ui/theme/Color.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/ui/theme/Color.kt b/app/src/main/java/com/golden_minute/nota/ui/theme/Color.kt
+rename from app/src/main/java/com/A_23_59/hypernote/ui/theme/Color.kt
+rename to app/src/main/java/com/golden_minute/nota/ui/theme/Color.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/ui/theme/Color.kt	
++++ b/app/src/main/java/com/golden_minute/nota/ui/theme/Color.kt	
+@@ -1,11 +1,12 @@
+-package com.A_23_59.hypernote.ui.theme
++package com.golden_minute.nota.ui.theme
+ 
+ import androidx.compose.ui.graphics.Brush
+ import androidx.compose.ui.graphics.Color
+ 
+ val Green = Color(0xFF01B44B)
+ val LighterGreen = Color(0xFF00FF6A)
+-val Purple700 = Color(0xFFAA00FF)
++val testBlue = Color(0xFFF4F4F4)
++val testing = Color(0x1E2B2B2B)
+ val Gold400 = Color(0xFFFFAB00)
+ val Gold200 = Color(0xFFF1B500)
+ val warning = Color(0xFFA83815)
+@@ -16,9 +17,10 @@
+ val darkerYellow = Color(0xFF8D5E00)
+ val darkerRed = Color(0xFFAC2133)
+ val lighterRed = Color(0xFFBB3A3A)
++val deleteWarning = Color(0xFFFF5F5F)
+ val redGradient = Brush.verticalGradient(listOf(darkerRed, elevatedSurface.copy(0.7f)), startY = -90f)
+ val darkBottomBar = Brush.verticalGradient(listOf(Color(0xFF634C85), Color(0xff212121)), startY = -70f)
+-val lightBottomBar = Brush.verticalGradient(listOf(Color(0xFFF0F0F0), Color(0xFFB3B3B3)), startY = -10f)
++val lightBottomBar = Brush.verticalGradient(listOf(Color(0xFF00C853), Color(0xFF3C9B00)), startY = -10f)
+ val goldGradient = Brush.verticalGradient(listOf(darkerYellow, elevatedSurface.copy(0.7f)), startY = -90f )
+ val blueGradient = Brush.verticalGradient(listOf(darkerBlue, elevatedSurface.copy(0.7f)), startY = -90f)
+ val greyGradient = Brush.verticalGradient(listOf(Color(0xFF3F3F3F),Color.Gray))
+\ No newline at end of file
+Index: app/src/main/java/com/A_23_59/hypernote/ui/theme/Theme.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/ui/theme/Theme.kt b/app/src/main/java/com/golden_minute/nota/ui/theme/Theme.kt
+rename from app/src/main/java/com/A_23_59/hypernote/ui/theme/Theme.kt
+rename to app/src/main/java/com/golden_minute/nota/ui/theme/Theme.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/ui/theme/Theme.kt	
++++ b/app/src/main/java/com/golden_minute/nota/ui/theme/Theme.kt	
+@@ -1,4 +1,4 @@
+-package com.A_23_59.hypernote.ui.theme
++package com.golden_minute.nota.ui.theme
+ 
+ import androidx.compose.material.MaterialTheme
+ import androidx.compose.material.darkColors
+Index: app/src/test/java/com/A_23_59/hypernote/ExampleUnitTest.kt
+===================================================================
+diff --git a/app/src/test/java/com/A_23_59/hypernote/ExampleUnitTest.kt b/app/src/test/java/com/golden_minute/nota/ExampleUnitMRebootReceiver.kt
+rename from app/src/test/java/com/A_23_59/hypernote/ExampleUnitTest.kt
+rename to app/src/test/java/com/golden_minute/nota/ExampleUnitMRebootReceiver.kt
+--- a/app/src/test/java/com/A_23_59/hypernote/ExampleUnitTest.kt	
++++ b/app/src/test/java/com/golden_minute/nota/ExampleUnitMRebootReceiver.kt	
+@@ -1,15 +1,14 @@
+-package com.A_23_59.hypernote
++package com.golden_minute.nota
+ 
++import org.junit.Assert.assertEquals
+ import org.junit.Test
+ 
+-import org.junit.Assert.*
+-
+ /**
+  * Example local unit test, which will execute on the development machine (host).
+  *
+  * See [testing documentation](http://d.android.com/tools/testing).
+  */
+-class ExampleUnitTest {
++class ExampleUnitMRebootReceiver {
+     @Test
+     fun addition_isCorrect() {
+         assertEquals(4, 2 + 2)
+Index: app/src/main/java/com/A_23_59/hypernote/data/data_source/NotaDatabase.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/data/data_source/NotaDatabase.kt b/app/src/main/java/com/golden_minute/nota/data/data_source/NotaDatabase.kt
+rename from app/src/main/java/com/A_23_59/hypernote/data/data_source/NotaDatabase.kt
+rename to app/src/main/java/com/golden_minute/nota/data/data_source/NotaDatabase.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/data/data_source/NotaDatabase.kt	
++++ b/app/src/main/java/com/golden_minute/nota/data/data_source/NotaDatabase.kt	
+@@ -1,11 +1,12 @@
+-package com.A_23_59.hypernote.data.data_source
++package com.golden_minute.nota.data.data_source
+ 
+ import androidx.room.Database
+ import androidx.room.RoomDatabase
+-import com.A_23_59.hypernote.domain.model.Note
+-import com.A_23_59.hypernote.domain.model.Task
++import com.golden_minute.nota.domain.model.Note
++import com.golden_minute.nota.domain.model.Tag
++import com.golden_minute.nota.domain.model.Task
+ 
+-@Database(entities = [Note::class, Task::class], version = 1)
++@Database(entities = [Note::class, Task::class, Tag::class], version = 1)
+ abstract class NotaDatabase : RoomDatabase() {
+ 
+     abstract val noteDao : NoteDao
+Index: app/src/main/java/com/A_23_59/hypernote/data/data_source/TagDao.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/data/data_source/TagDao.kt b/app/src/main/java/com/golden_minute/nota/data/data_source/TagDao.kt
+rename from app/src/main/java/com/A_23_59/hypernote/data/data_source/TagDao.kt
+rename to app/src/main/java/com/golden_minute/nota/data/data_source/TagDao.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/data/data_source/TagDao.kt	
++++ b/app/src/main/java/com/golden_minute/nota/data/data_source/TagDao.kt	
+@@ -1,4 +1,4 @@
+-package com.A_23_59.hypernote.data.data_source
++package com.golden_minute.nota.data.data_source
+ 
+ import androidx.room.Dao
+ import androidx.room.Delete
+@@ -6,7 +6,7 @@
+ import androidx.room.OnConflictStrategy
+ import androidx.room.Query
+ import androidx.room.Update
+-import com.A_23_59.hypernote.domain.model.Tag
++import com.golden_minute.nota.domain.model.Tag
+ import kotlinx.coroutines.flow.Flow
+ 
+ @Dao
+@@ -16,11 +16,17 @@
+     fun getAllTags(): Flow<List<Tag>>
+ 
+     @Insert(onConflict = OnConflictStrategy.REPLACE)
+-    suspend fun addTags(tags: List<Tag>)
++    suspend fun addTags(tags:List<Tag>)
+ 
++    @Insert(onConflict = OnConflictStrategy.REPLACE)
++    suspend fun addTag(tag:Tag)
++
+     @Delete
+     suspend fun deleteTag(tag: Tag)
+ 
++    @Delete
++    suspend fun deleteTags (tags:List<Tag>):Int
++
+     @Update
+     suspend fun updateTags(tags: List<Tag>)
+ }
+\ No newline at end of file
+Index: app/src/androidTest/java/com/A_23_59/hypernote/ExampleInstrumentedTest.kt
+===================================================================
+diff --git a/app/src/androidTest/java/com/A_23_59/hypernote/ExampleInstrumentedTest.kt b/app/src/androidTest/java/com/golden_minute/nota/ExampleInstrumentedMRebootReceiver.kt
+rename from app/src/androidTest/java/com/A_23_59/hypernote/ExampleInstrumentedTest.kt
+rename to app/src/androidTest/java/com/golden_minute/nota/ExampleInstrumentedMRebootReceiver.kt
+--- a/app/src/androidTest/java/com/A_23_59/hypernote/ExampleInstrumentedTest.kt	
++++ b/app/src/androidTest/java/com/golden_minute/nota/ExampleInstrumentedMRebootReceiver.kt	
+@@ -1,24 +1,22 @@
+-package com.A_23_59.hypernote
++package com.golden_minute.nota
+ 
+-import androidx.test.platform.app.InstrumentationRegistry
+ import androidx.test.ext.junit.runners.AndroidJUnit4
+-
++import androidx.test.platform.app.InstrumentationRegistry
++import org.junit.Assert.assertEquals
+ import org.junit.Test
+ import org.junit.runner.RunWith
+ 
+-import org.junit.Assert.*
+-
+ /**
+  * Instrumented test, which will execute on an Android device.
+  *
+  * See [testing documentation](http://d.android.com/tools/testing).
+  */
+ @RunWith(AndroidJUnit4::class)
+-class ExampleInstrumentedTest {
++class ExampleInstrumentedMRebootReceiver {
+     @Test
+     fun useAppContext() {
+         // Context of the app under test.
+         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+-        assertEquals("com.A_23_59.hypernote", appContext.packageName)
++        assertEquals("com.golden_minute.nota", appContext.packageName)
+     }
+ }
+\ No newline at end of file
+Index: build.gradle
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>buildscript {\r\n    ext {\r\n        compose_ui_version = '1.3.1'\r\n        agp_version = '7.3.1'\r\n    }\r\n}// Top-level build file where you can add configuration options common to all sub-projects/modules.\r\n\r\nplugins {\r\n    id 'com.android.application' version '8.4.1' apply false\r\n    id 'com.google.dagger.hilt.android' version '2.51' apply false\r\n    id 'com.android.library' version '8.4.1' apply false\r\n    id 'com.google.devtools.ksp' version '1.9.23-1.0.19' apply false\r\n    id 'org.jetbrains.kotlin.plugin.serialization' version '2.0.0' apply false\r\n    alias(libs.plugins.compose.compiler) apply false\r\n    alias(libs.plugins.org.jetbrains.kotlin.android) apply false\r\n}
+===================================================================
+diff --git a/build.gradle b/build.gradle
+--- a/build.gradle	
++++ b/build.gradle	
+@@ -6,10 +6,10 @@
+ }// Top-level build file where you can add configuration options common to all sub-projects/modules.
+ 
+ plugins {
+-    id 'com.android.application' version '8.4.1' apply false
++    id 'com.android.application' version '8.6.0' apply false
+     id 'com.google.dagger.hilt.android' version '2.51' apply false
+-    id 'com.android.library' version '8.4.1' apply false
+-    id 'com.google.devtools.ksp' version '1.9.23-1.0.19' apply false
++    id 'com.android.library' version '8.6.0' apply false
++    id 'com.google.devtools.ksp' version '2.0.0-1.0.22' apply false
+     id 'org.jetbrains.kotlin.plugin.serialization' version '2.0.0' apply false
+     alias(libs.plugins.compose.compiler) apply false
+     alias(libs.plugins.org.jetbrains.kotlin.android) apply false
+Index: app/src/main/java/com/A_23_59/hypernote/presentation/MainActivity.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/presentation/MainActivity.kt b/app/src/main/java/com/golden_minute/nota/presentation/MainActivity.kt
+rename from app/src/main/java/com/A_23_59/hypernote/presentation/MainActivity.kt
+rename to app/src/main/java/com/golden_minute/nota/presentation/MainActivity.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/presentation/MainActivity.kt	
++++ b/app/src/main/java/com/golden_minute/nota/presentation/MainActivity.kt	
+@@ -1,10 +1,15 @@
+-package com.A_23_59.hypernote.presentation
++package com.golden_minute.nota.presentation
+ 
++import android.Manifest
+ import android.annotation.SuppressLint
++import android.content.pm.PackageManager
++import android.os.Build
+ import android.os.Bundle
+ import androidx.activity.SystemBarStyle
+ import androidx.activity.compose.setContent
+ import androidx.activity.enableEdgeToEdge
++import androidx.activity.result.contract.ActivityResultContracts
++import androidx.annotation.RequiresApi
+ import androidx.appcompat.app.AppCompatActivity
+ import androidx.appcompat.app.AppCompatDelegate
+ import androidx.compose.animation.AnimatedContentTransitionScope
+@@ -14,29 +19,32 @@
+ import androidx.compose.material.MaterialTheme
+ import androidx.compose.runtime.Composable
+ import androidx.compose.runtime.LaunchedEffect
+-import androidx.compose.runtime.getValue
+-import androidx.compose.runtime.mutableStateOf
+-import androidx.compose.runtime.setValue
++import androidx.compose.runtime.collectAsState
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.graphics.Color
+ import androidx.compose.ui.graphics.toArgb
++import androidx.core.content.ContextCompat
+ import androidx.core.os.LocaleListCompat
+ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
++import androidx.hilt.navigation.compose.hiltViewModel
++import androidx.lifecycle.ViewModelProvider
+ import androidx.navigation.NavType
+ import androidx.navigation.compose.NavHost
+ import androidx.navigation.compose.composable
+ import androidx.navigation.compose.rememberNavController
+ import androidx.navigation.navArgument
+-import com.A_23_59.hypernote.ui.theme.NotaTheme
++import com.golden_minute.nota.data.data_source.SettingsDataStore
++import com.golden_minute.nota.ui.theme.NotaTheme
+ import dagger.hilt.android.AndroidEntryPoint
+ import java.text.SimpleDateFormat
+ import java.util.Date
++import javax.inject.Inject
+ 
+-var selectedLocale by mutableStateOf("fa-ir")
+ var currentSystemYear = 0
+ var currentSystemMonth = 0
+ var currentSystemDay = 0
+ 
++
+ fun gregorian_to_jalali(gy: Int = 0, gm: Int = 0, gd: Int = 0): IntArray {
+     val g_d_m: IntArray = intArrayOf(0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334)
+     val gy2: Int = if (gm > 2) (gy + 1) else gy
+@@ -100,15 +108,49 @@
+     return intArrayOf(gy, gm, gd)
+ }
+ 
++
+ @AndroidEntryPoint
+ class MainActivity : AppCompatActivity() {
+ 
++
++
++
++    val requestNotificationPermission =
++        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
++            if (isGranted) {
++                return@registerForActivityResult
++            }
++
++
++        }
++
++
++    @Inject
++    lateinit var settingsDataStore: SettingsDataStore
++
++
++
++//    val settingsDataStore = (this.applicationContext as? NotaApplication)!!.settingsDataStore
++
++    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+     @SuppressLint("SimpleDateFormat")
+     override fun onCreate(savedInstanceState: Bundle?) {
+         super.onCreate(savedInstanceState)
+ 
+ 
+-        if (selectedLocale == "fa-ir") {
++        val activityViewModel: MainActivityViewModel =
++            ViewModelProvider(this)[MainActivityViewModel::class]
++
++
++        installSplashScreen().apply {
++            setKeepOnScreenCondition {
++                activityViewModel.showSplashScreen.value
++            }
++        }
++
++
++
++        if (activityViewModel.languageData.value == "fa-ir") {
+ 
+             val date = gregorian_to_jalali(
+                 SimpleDateFormat("yyyy").format(Date()).toInt(),
+@@ -124,21 +166,33 @@
+             currentSystemDay = SimpleDateFormat("dd").format(Date()).toInt()
+         }
+ 
+-        installSplashScreen()
++
++
++
++
+ 
+         setContent {
+-
+-            val currentLocale = LocaleListCompat.forLanguageTags(selectedLocale)
++            val startPage = activityViewModel.startPage.collectAsState()
++            val currentLocale =
++                LocaleListCompat.forLanguageTags(activityViewModel.languageData.value)
+             AppCompatDelegate.setApplicationLocales(currentLocale)
+             val navController = rememberNavController()
+             Box(Modifier.safeDrawingPadding()) {
+-                NotaTheme(themeIsDark) {
++                NotaTheme(activityViewModel.themeData.value) {
+ 
+-                    ChangeSystemBarsTheme(lightTheme = !themeIsDark)
+ 
+-                    NavHost(navController = navController, startDestination = "welcome_screen") {
++                    ChangeSystemBarsTheme(lightTheme = !activityViewModel.themeData.value)
++
++                    NavHost(
++                        navController = navController,
++                        startDestination = startPage.value
++                    ) {
+                         composable("main_screen") {
+-                            HomePage(navController)
++                            HomePage(navController, activityViewModel = activityViewModel)
++
++                            val viewModel: HomeScreenViewModel = hiltViewModel(it)
++                            if (showTagsDialog)
++                                TagsSelectionDialog(viewModel)
+                         }
+                         composable(
+                             "add_note_screen?id={id}",
+@@ -161,7 +215,9 @@
+                         ) {
+                             Add_Edit_Item(
+                                 navController = navController,
+-                                currentPage = currentPage
++                                currentPage = currentPage,
++                                mainActivityViewModel = activityViewModel
++
+                             )
+                         }
+                         composable(
+@@ -182,10 +238,14 @@
+                                     tween(450)
+                                 )
+                             }) {
++
+                             Add_Edit_Item(
+                                 navController = navController,
+-                                currentPage = currentPage
++                                currentPage = currentPage,
++                                mainActivityViewModel = activityViewModel
+                             )
++
++                            CheckNotificationPermission()
+                         }
+                         composable("settings_screen", enterTransition = {
+                             slideIntoContainer(
+@@ -196,25 +256,40 @@
+                                 AnimatedContentTransitionScope.SlideDirection.End,
+                                 tween(450)
+                             )
+-                        }) { SettingsScreen(navController = navController) }
++                        }) {
++                            SettingsScreen(
++                                navController = navController,
++                                activityViewModel = activityViewModel,
++                                settingsDataStore = settingsDataStore
++                            )
++                        }
+                         composable("welcome_screen", exitTransition = {
+                             slideOutOfContainer(
+                                 AnimatedContentTransitionScope.SlideDirection.Start
+                             )
+-                        }) { WelcomeScreen(navController) }
++                        }) { WelcomeScreen(navController, settingsDataStore) }
+ 
++                    }
+ 
+-                    }
++                }
++            }
++        }
++    }
+ 
+-                    if (showTagsDialog)
+-                        TagsSelectionDialog()
+-                    if (showRepeatDialog)
+-                        RepeatTaskDialog()
+-                    if (showDateAndTimeDialog)
+-                        ChooseDateTimeDialog()
+-
++    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
++    @Composable
++    fun CheckNotificationPermission() {
++        val permission = Manifest.permission.POST_NOTIFICATIONS
++        when {
++            ContextCompat.checkSelfPermission(
++                this,
++                permission
++            ) == PackageManager.PERMISSION_GRANTED -> {
++                return
++            }
+ 
+-                }
++            else -> {
++                requestNotificationPermission.launch(permission)
+             }
+         }
+     }
+Index: app/build.gradle
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>plugins {\r\n    id 'com.android.application'\r\n    id 'org.jetbrains.kotlin.android'\r\n    id 'com.google.devtools.ksp'\r\n    id 'com.google.dagger.hilt.android'\r\n    id 'org.jetbrains.kotlin.plugin.serialization'\r\n    alias(libs.plugins.compose.compiler)\r\n\r\n}\r\nkotlin {\r\n    sourceSets {\r\n        debug {\r\n            kotlin.srcDir(\"build/generated/ksp/debug/kotlin\")\r\n        }\r\n        release {\r\n            kotlin.srcDir(\"build/generated/ksp/release/kotlin\")\r\n        }\r\n    }\r\n}\r\next {\r\n    var = '23_59'\r\n}\r\n\r\nandroid {\r\n    signingConfigs {\r\n        release {\r\n            storeFile file('C:\\\\Users\\\\amirh\\\\Documents\\\\A_23_59.jks')\r\n            storePassword '@m1rh055e1n'\r\n            keyPassword '@m1rh055e1n'\r\n            keyAlias '23_59'\r\n        }\r\n    }\r\n    namespace 'com.A_23_59.hypernote'\r\n    compileSdk 34\r\n\r\n\r\n    defaultConfig {\r\n        applicationId \"com.A_23_59.hypernote\"\r\n        minSdk 26\r\n        targetSdk 34\r\n        versionCode 4\r\n        versionName '1.9 Beta'\r\n        testInstrumentationRunner \"androidx.test.runner.AndroidJUnitRunner\"\r\n        vectorDrawables {\r\n            useSupportLibrary true\r\n        }\r\n    }\r\n\r\n    buildTypes {\r\n        release {\r\n            minifyEnabled true\r\n            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'\r\n            signingConfig signingConfigs.release\r\n        }\r\n        debug{\r\n            minifyEnabled false\r\n        }\r\n    }\r\n    compileOptions {\r\n        sourceCompatibility JavaVersion.VERSION_17\r\n        targetCompatibility JavaVersion.VERSION_17\r\n    }\r\n    kotlinOptions {\r\n        jvmTarget = '17'\r\n    }\r\n    buildFeatures {\r\n        compose true\r\n    }\r\n    packagingOptions {\r\n        resources {\r\n\r\n        }\r\n    }\r\n    buildToolsVersion '34.0.0'\r\n\r\n\r\n    applicationVariants.all { variant ->\r\n        kotlin.sourceSets {\r\n            getByName(variant.name) {\r\n                kotlin.srcDir(\"build/generated/ksp/${variant.name}/kotlin\")\r\n            }\r\n        }\r\n    }\r\n\r\n}\r\n\r\ndependencies {\r\n    implementation(libs.androidx.lifecycle.viewmodel.compose)\r\n    implementation libs.hilt.android\r\n    implementation libs.kotlinx.serialization.json\r\n    implementation libs.androidx.datastore.preferences\r\n    ksp libs.hilt.compiler\r\n    ksp libs.androidx.room.compiler\r\n    implementation libs.androidx.hilt.navigation.compose\r\n    implementation libs.androidx.room.runtime\r\n    implementation libs.androidx.room.ktx\r\n    implementation libs.kotlinx.coroutines.android\r\n    implementation libs.androidx.navigation.compose\r\n    implementation libs.capturable\r\n    implementation libs.accompanist.pager\r\n    implementation libs.accompanist.pager.indicators\r\n    implementation libs.androidx.core.ktx\r\n    implementation(libs.androidx.core.splashscreen)\r\n    implementation libs.androidx.appcompat\r\n    implementation libs.androidx.appcompat.resources\r\n    implementation libs.androidx.lifecycle.runtime.ktx\r\n    implementation 'androidx.constraintlayout:constraintlayout-compose:1.1.0-alpha10'\r\n    implementation libs.androidx.material3\r\n    implementation libs.androidx.activity.compose\r\n    implementation libs.androidx.ui\r\n    implementation libs.androidx.ui.tooling.preview\r\n    implementation libs.androidx.material\r\n    testImplementation libs.junit\r\n    androidTestImplementation libs.androidx.junit\r\n    androidTestImplementation libs.androidx.espresso.core\r\n    androidTestImplementation libs.androidx.ui.test.junit4\r\n    debugImplementation libs.androidx.ui.tooling\r\n    debugImplementation libs.androidx.ui.test.manifest\r\n\r\n}\r\n
+===================================================================
+diff --git a/app/build.gradle b/app/build.gradle
+--- a/app/build.gradle	
++++ b/app/build.gradle	
+@@ -24,22 +24,22 @@
+ android {
+     signingConfigs {
+         release {
+-            storeFile file('C:\\Users\\amirh\\Documents\\A_23_59.jks')
++            storeFile file('C:\\Users\\amirh\\Documents\\golden_minute.jks')
+             storePassword '@m1rh055e1n'
+             keyPassword '@m1rh055e1n'
+             keyAlias '23_59'
+         }
+     }
+-    namespace 'com.A_23_59.hypernote'
+-    compileSdk 34
++    namespace 'com.golden_minute.nota'
++    compileSdk 35
+ 
+ 
+     defaultConfig {
+-        applicationId "com.A_23_59.hypernote"
++        applicationId "com.golden_minute.nota"
+         minSdk 26
+         targetSdk 34
+-        versionCode 4
+-        versionName '1.9 Beta'
++        versionCode 5
++        versionName '2.0'
+         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+         vectorDrawables {
+             useSupportLibrary true
+@@ -71,7 +71,7 @@
+ 
+         }
+     }
+-    buildToolsVersion '34.0.0'
++    buildToolsVersion '35.0.0'
+ 
+ 
+     applicationVariants.all { variant ->
+@@ -87,7 +87,9 @@
+ dependencies {
+     implementation(libs.androidx.lifecycle.viewmodel.compose)
+     implementation libs.hilt.android
++    implementation(libs.haze)
+     implementation libs.kotlinx.serialization.json
++    implementation libs.androidx.work.runtime.ktx
+     implementation libs.androidx.datastore.preferences
+     ksp libs.hilt.compiler
+     ksp libs.androidx.room.compiler
+@@ -104,7 +106,7 @@
+     implementation libs.androidx.appcompat
+     implementation libs.androidx.appcompat.resources
+     implementation libs.androidx.lifecycle.runtime.ktx
+-    implementation 'androidx.constraintlayout:constraintlayout-compose:1.1.0-alpha10'
++    implementation libs.constraintlayout.compose
+     implementation libs.androidx.material3
+     implementation libs.androidx.activity.compose
+     implementation libs.androidx.ui
+Index: app/src/main/java/com/A_23_59/hypernote/data/repository/NoteRepositoryImpl.kt
+===================================================================
+diff --git a/app/src/main/java/com/A_23_59/hypernote/data/repository/NoteRepositoryImpl.kt b/app/src/main/java/com/golden_minute/nota/data/repository/NoteRepositoryImpl.kt
+rename from app/src/main/java/com/A_23_59/hypernote/data/repository/NoteRepositoryImpl.kt
+rename to app/src/main/java/com/golden_minute/nota/data/repository/NoteRepositoryImpl.kt
+--- a/app/src/main/java/com/A_23_59/hypernote/data/repository/NoteRepositoryImpl.kt	
++++ b/app/src/main/java/com/golden_minute/nota/data/repository/NoteRepositoryImpl.kt	
+@@ -1,8 +1,8 @@
+-package com.A_23_59.hypernote.data.repository
++package com.golden_minute.nota.data.repository
+ 
+-import com.A_23_59.hypernote.data.data_source.NoteDao
+-import com.A_23_59.hypernote.domain.model.Note
+-import com.A_23_59.hypernote.domain.repository.NoteRepository
++import com.golden_minute.nota.data.data_source.NoteDao
++import com.golden_minute.nota.domain.model.Note
++import com.golden_minute.nota.domain.repository.NoteRepository
+ import kotlinx.coroutines.flow.Flow
+ 
+ class NoteRepositoryImpl(private val noteDao: NoteDao) : NoteRepository {
+@@ -14,7 +14,7 @@
+         return noteDao.searchNote(input)
+     }
+ 
+-    override suspend fun addNote(note: Note) {
++    override suspend fun addNote(note: Note):Long {
+         return noteDao.addNote(note)
+     }
+ 
+@@ -25,6 +25,14 @@
+     override suspend fun updateSelectedNotes(notes: List<Note>) {
+         return noteDao.updateNotes(notes)
+     }
++
++    override suspend fun updateNote(note: Note) {
++        return noteDao.updateNote(note)
++    }
++
++    override suspend fun updateNotes(notes: List<Note>) {
++        return noteDao.updateNotes(notes)
++    }
+ 
+     override suspend fun deleteNote(note: Note) {
+         return noteDao.deleteNote(note)
